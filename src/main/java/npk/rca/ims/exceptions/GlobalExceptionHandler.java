@@ -1,5 +1,6 @@
 package npk.rca.ims.exception;
 
+import npk.rca.ims.exceptions.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
