@@ -1,6 +1,5 @@
-package npk.rca.ims.exception;
+package npk.rca.ims.exceptions;
 
-import npk.rca.ims.exceptions.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -110,13 +109,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(
             Exception ex) {
-
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("timestamp", LocalDateTime.now());
         errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         errorResponse.put("error", "Internal Server Error");
-        errorResponse.put("message", "An unexpected error occurred");
-        // Don't expose internal error details in production!
+        errorResponse.put("message", ex.getMessage());  // Show actual message for debugging
+        errorResponse.put("exceptionType", ex.getClass().getSimpleName());
 
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }

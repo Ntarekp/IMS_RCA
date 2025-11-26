@@ -1,6 +1,7 @@
 package npk.rca.ims.service;
 
 import lombok.RequiredArgsConstructor;
+import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.exceptions.ResourceNotFoundException;
 import npk.rca.ims.model.Item;
