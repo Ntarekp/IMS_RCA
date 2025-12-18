@@ -3,6 +3,7 @@ package npk.rca.ims.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 import java.util.Arrays;
@@ -22,7 +23,19 @@ public class CorsConfig {
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
         //Allow all headers
-        config.setAllowCredentials(Arrays.asList("*"));
+        config.setAllowedHeaders(Arrays.asList("*"));
+
+        //Allow credentials(cookies,authorization headers)
+        config.setAllowCredentials(true);
+
+        //Cache response period
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", config);
+
+        return new CorsFilter(source);
+
 
     }
 }
