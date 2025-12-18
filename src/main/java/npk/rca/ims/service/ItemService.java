@@ -159,6 +159,7 @@ public class ItemService {
         dto.setDescription(item.getDescription());
         dto.setCreatedAt(item.getCreatedAt());
         dto.setUpdatedAt(item.getUpdatedAt());
+        dto.setDamagedQuantity(item.getDamagedQuantity());
 
         // Calculate current balance
         Integer balance = getCurrentBalance(item.getId());
@@ -179,8 +180,28 @@ public class ItemService {
         item.setUnit(dto.getUnit());
         item.setMinimumStock(dto.getMinimumStock());
         item.setDescription(dto.getDescription());
+        if (dto.getDamagedQuantity() != null) {
+            item.setDamagedQuantity(dto.getDamagedQuantity());
+        }
         // Don't set id, createdAt, updatedAt - managed by JPA
         return item;
+    }
+
+    /**
+     * Record damaged quantity for an item
+     * @param itemId Item ID
+     * @param damagedQty Quantity to record as damaged (added to existing)
+     * @return Updated ItemDTO
+     */
+    @Transactional
+    public ItemDTO recordDamagedQuantity(Long itemId, int damagedQty) {
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + itemId));
+        int newDamaged = item.getDamagedQuantity() + damagedQty;
+        if (newDamaged < 0) newDamaged = 0;
+        item.setDamagedQuantity(newDamaged);
+        itemRepository.save(item);
+        return convertToDTO(item);
     }
 
     /**

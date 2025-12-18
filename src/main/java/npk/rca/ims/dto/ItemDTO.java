@@ -77,6 +77,12 @@ public class ItemDTO {
     private Boolean isLowStock;
 
     /**
+     * Damaged quantity for this item (e.g., spoiled, broken, unusable)
+     * This is included in API responses and can be set via a dedicated endpoint.
+     */
+    private Integer damagedQuantity;
+
+    /**
      * USAGE EXAMPLES:
      *
      * Creating new item (POST /api/items):
@@ -95,6 +101,7 @@ public class ItemDTO {
      *   "minimumStock": 10,
      *   "description": "Thai jasmine rice",
      *   "currentBalance": 0,
+     *   "damagedQuantity": 0,
      *   "isLowStock": true,
      *   "createdAt": "2024-12-01T10:30:00",
      *   "updatedAt": "2024-12-01T10:30:00"

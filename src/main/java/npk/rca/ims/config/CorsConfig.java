@@ -16,8 +16,9 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
 
-        //Allow requests from frontend!
-        config.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+
+        // Allow all origins for development. Change to specific domains in production!
+        config.setAllowedOriginPatterns(Arrays.asList("*"));
 
         // Allow all HTTP methods (Get, POST,put,Delete,...)
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));

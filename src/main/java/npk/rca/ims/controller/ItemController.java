@@ -124,55 +124,30 @@ public class ItemController {
     }
 
     /**
-     * TESTING WITH CURL/POSTMAN:
+     * PATCH /api/items/{id}/damaged
+     * Record damaged quantity for an item
      *
-     * 1. Create item:
-     * curl -X POST http://localhost:8080/api/items \
+     * Request body: { "damagedQuantity": 5 }
+     *
+     * Response: 200 OK with updated item
+     *
+     * Example:
+     * curl -X PATCH http://localhost:8080/api/items/1/damaged \
      *   -H "Content-Type: application/json" \
-     *   -d '{
-     *     "name": "Rice",
-     *     "unit": "Sacks",
-     *     "minimumStock": 10,
-     *     "description": "Thai jasmine rice"
-     *   }'
-     *
-     * 2. Get all items:
-     * curl http://localhost:8080/api/items
-     *
-     * 3. Get one item:
-     * curl http://localhost:8080/api/items/1
-     *
-     * 4. Update item:
-     * curl -X PUT http://localhost:8080/api/items/1 \
-     *   -H "Content-Type: application/json" \
-     *   -d '{
-     *     "name": "White Rice",
-     *     "unit": "Sacks",
-     *     "minimumStock": 15
-     *   }'
-     *
-     * 5. Delete item:
-     * curl -X DELETE http://localhost:8080/api/items/1
-     *
-     * KEY CONCEPTS:
-     *
-     * 1. HTTP STATUS CODES:
-     *    200 OK - Success with response body
-     *    201 CREATED - Resource created
-     *    204 NO CONTENT - Success without response body
-     *    400 BAD REQUEST - Invalid input
-     *    404 NOT FOUND - Resource doesn't exist
-     *    500 INTERNAL SERVER ERROR - Server error
-     *
-     * 2. @Valid ANNOTATION:
-     *    - Triggers DTO field validation
-     *    - If validation fails → 400 error
-     *    - Error handled by GlobalExceptionHandler
-     *
-     * 3. ResponseEntity:
-     *    - Wraps response body + HTTP status
-     *    - ResponseEntity.ok() → 200 status
-     *    - ResponseEntity.status(201) → 201 status
-     *
+     *   -d '{ "damagedQuantity": 5 }'
      */
+    @PatchMapping("/{id}/damaged")
+    public ResponseEntity<ItemDTO> recordDamagedQuantity(
+            @PathVariable Long id,
+            @RequestBody DamagedQuantityRequest request) {
+        ItemDTO updated = itemService.recordDamagedQuantity(id, request.getDamagedQuantity());
+        return ResponseEntity.ok(updated);
+    }
+
+    // DTO for damaged quantity request
+    public static class DamagedQuantityRequest {
+        private int damagedQuantity;
+        public int getDamagedQuantity() { return damagedQuantity; }
+        public void setDamagedQuantity(int damagedQuantity) { this.damagedQuantity = damagedQuantity; }
+    }
 }

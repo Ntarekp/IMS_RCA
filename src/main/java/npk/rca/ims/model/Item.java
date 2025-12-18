@@ -54,9 +54,17 @@ public class Item {
      * Measurement Unit (e.g., "Sacks", "Liters", "Kg")
      * @NotBlank - Must provide a unit
      */
+
     @NotBlank(message = "Unit is required")
     @Column(nullable = false, length = 50)
     private String unit;
+
+    /**
+     * Damaged quantity for this item (e.g., spoiled, broken, unusable)
+     * Default is 0. This is updated when damaged stock is recorded.
+     */
+    @Column(nullable = false)
+    private int damagedQuantity = 0;
 
     /**
      * Minimum Stock Level (alert threshold)
@@ -89,4 +97,11 @@ public class Item {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    public int getDamagedQuantity() {
+        return damagedQuantity;
+    }
+
+    public void setDamagedQuantity(int damagedQuantity) {
+        this.damagedQuantity = damagedQuantity;
+    }
 }
