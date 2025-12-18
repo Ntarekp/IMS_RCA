@@ -1,5 +1,4 @@
 package npk.rca.ims.repository;
-
 import npk.rca.ims.model.Item;
 import npk.rca.ims.model.StockTransaction;
 import npk.rca.ims.model.TransactionType;
@@ -87,6 +86,7 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      */
     @Query("SELECT t FROM StockTransaction t ORDER BY t.transactionDate DESC, t.createdAt DESC")
     List<StockTransaction> findRecentTransactions();
+
 
 
 }

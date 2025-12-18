@@ -34,30 +34,11 @@ public class StockTransaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * RELATIONSHIP: Many-to-One
-     *
-     * Many transactions can reference ONE item
-     * Example:
-     *   - 100 sacks of rice IN (transaction 1)
-     *   - 50 sacks of rice OUT (transaction 2)
-     *   - 30 sacks of rice IN (transaction 3)
-     * All three transactions point to the same Item (Rice)
-     *
-     * @ManyToOne - Defines relationship type
-     * @JoinColumn - Creates foreign key column "item_id" in this table
-     * fetch = LAZY - Don't load Item data unless explicitly requested (performance)
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id", nullable = false)
     @NotNull(message = "Item is required")
     private Item item;
 
-    /**
-     * Transaction Type (IN or OUT)
-     * @Enumerated(STRING) - Store as "IN" or "OUT" in database
-     * Alternative: ORDINAL would store as 0 or 1 (bad - unclear)
-     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     @NotNull(message = "Transaction type is required")
