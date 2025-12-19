@@ -20,14 +20,16 @@ public class CorsConfig {
         // Allow all origins for development. Change to specific domains in production!
         config.setAllowedOriginPatterns(Arrays.asList("*"));
 
-        // Allow all HTTP methods (Get, POST,put,Delete,...)
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // Allow all HTTP methods (Get, POST, PUT, DELETE, PATCH, OPTIONS)
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
         //Allow all headers
         config.setAllowedHeaders(Arrays.asList("*"));
 
         //Allow credentials(cookies,authorization headers)
-        config.setAllowCredentials(true);
+        // Note: When using wildcard (*) origins, credentials must be false
+        // For production, specify exact origins and set this to true
+        config.setAllowCredentials(false);
 
         //Cache response period
         config.setMaxAge(3600L);
