@@ -26,10 +26,11 @@ public class StockService {
     }
 
     public StockMetricsDTO getMetrics() {
-        long total = stockTransactionRepository.count();
+        // Get all items
+        List<Item> items = itemRepository.findAll();
+        long totalItems = items.size();
 
         // Count low stock items (currentBalance < minimumStock)
-        List<Item> items = itemRepository.findAll();
         long lowStock = items.stream()
                 .filter(item -> {
                     Integer balance = itemService.getCurrentBalance(item.getId());
@@ -42,10 +43,10 @@ public class StockService {
                 .filter(item -> item.getDamagedQuantity() > 0)
                 .count();
 
-        // Count transactions created in the last month
+        // Count transactions created in the last month (monthly inflow)
         long thisMonth = stockTransactionRepository.countByCreatedAtAfter(LocalDateTime.now().minusMonths(1));
 
-        return new StockMetricsDTO(total, lowStock, damaged, thisMonth);
+        return new StockMetricsDTO(totalItems, lowStock, damaged, thisMonth);
     }
 
 }

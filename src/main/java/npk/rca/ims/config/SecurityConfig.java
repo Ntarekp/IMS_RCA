@@ -39,6 +39,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/admin/**").permitAll() // Admin utilities (can secure later)
                 // All other API endpoints require authentication
                 .requestMatchers("/api/**").authenticated()
                 // Allow all other requests (static resources, etc.)
