@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -87,6 +88,10 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
     @Query("SELECT t FROM StockTransaction t ORDER BY t.transactionDate DESC, t.createdAt DESC")
     List<StockTransaction> findRecentTransactions();
 
-
+    /**
+     * Count transactions created after a specific date/time
+     * Used for metrics (e.g., transactions this month)
+     */
+    long countByCreatedAtAfter(LocalDateTime date);
 
 }

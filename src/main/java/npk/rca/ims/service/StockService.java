@@ -37,8 +37,13 @@ public class StockService {
                 })
                 .count();
 
-        long damaged = stockTransactionRepository.countByStatus("Damaged");
-        long thisMonth = stockTransactionRepository.countByCreatedDateAfter(LocalDateTime.now().minusMonths(1));
+        // Count items with damaged quantity > 0
+        long damaged = items.stream()
+                .filter(item -> item.getDamagedQuantity() > 0)
+                .count();
+
+        // Count transactions created in the last month
+        long thisMonth = stockTransactionRepository.countByCreatedAtAfter(LocalDateTime.now().minusMonths(1));
 
         return new StockMetricsDTO(total, lowStock, damaged, thisMonth);
     }
