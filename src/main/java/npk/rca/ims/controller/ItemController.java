@@ -50,9 +50,18 @@ public class ItemController {
      *   }
      * ]
      */
+    /**
+     * GET /api/items (with optional filters and sorting)
+     * Example: /api/items?category=Grains&status=Birahagije&sort=name,asc
+     */
     @GetMapping
-    public ResponseEntity<List<ItemDTO>> getAllItems() {
-        List<ItemDTO> items = itemService.getAllItems();
+    public ResponseEntity<List<ItemDTO>> getAllItems(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false, defaultValue = "name,asc") String sort
+    ) {
+        List<ItemDTO> items = itemService.getFilteredItems(category, status, name, sort);
         return ResponseEntity.ok(items);
     }
 

@@ -40,6 +40,16 @@ public class User {
     @Column(nullable = false)
     private String role = "USER"; // USER, ADMIN, etc.
 
+    // New profile fields
+    @Column(length = 100)
+    private String name;
+
+    @Column(length = 50)
+    private String phone;
+
+    @Column(length = 100)
+    private String department;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

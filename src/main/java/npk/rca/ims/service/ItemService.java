@@ -2,153 +2,199 @@ package npk.rca.ims.service;
 
 import lombok.RequiredArgsConstructor;
 import npk.rca.ims.dto.ItemDTO;
-import npk.rca.ims.exceptions.ResourceNotFoundException;
 import npk.rca.ims.model.Item;
+import npk.rca.ims.exceptions.ResourceNotFoundException;
 import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.StockTransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-/**
- * ItemService - Business logic for Items
- *
- * SERVICE LAYER RESPONSIBILITIES:
- * 1. Coordinate between Controller and Repository
- * 2. Implement business logic
- * 3. Convert between Entity and DTO
- * 4. Handle transactions
- * 5. Validate business rules
- *
- * @Service - Marks this as a service component
- * @RequiredArgsConstructor (Lombok) - Creates constructor for final fields
- * @Transactional - Manages database transactions
- */
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)  // All methods are read-only by default
+@Transactional
 public class ItemService {
 
-    /**
-     * Dependencies (auto-injected by Spring)
-     * final = required dependencies, injected via constructor
-     */
     private final ItemRepository itemRepository;
-    private final StockTransactionRepository transactionRepository;
+    private final StockTransactionRepository stockTransactionRepository;
 
     /**
-     * Get all items with their current balances
+     * Get filtered and sorted list of items
+     */
+    public List<ItemDTO> getFilteredItems(String category, String status, String name, String sort) {
+        // Get all items first
+        List<Item> items = itemRepository.findAll();
+
+        // Apply filters
+        Stream<Item> itemStream = items.stream();
+
+        // Filter by name (case-insensitive partial match)
+        if (name != null && !name.isEmpty()) {
+            itemStream = itemStream.filter(item ->
+                    item.getName().toLowerCase().contains(name.toLowerCase()));
+        }
+
+        // Convert to DTOs (with calculated balance)
+        List<ItemDTO> itemDTOs = itemStream
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+        // Filter by status (low stock vs adequate stock) - AFTER DTO conversion
+        if (status != null && !status.isEmpty()) {
+            if ("Birahagije".equalsIgnoreCase(status)) {
+                // Low stock items
+                itemDTOs = itemDTOs.stream()
+                        .filter(ItemDTO::getIsLowStock)
+                        .collect(Collectors.toList());
+            } else if ("Birahagera".equalsIgnoreCase(status)) {
+                // Adequate stock items
+                itemDTOs = itemDTOs.stream()
+                        .filter(dto -> !dto.getIsLowStock())
+                        .collect(Collectors.toList());
+            }
+        }
+
+        // Apply sorting
+        Comparator<ItemDTO> comparator = getComparator(sort);
+        itemDTOs.sort(comparator);
+
+        return itemDTOs;
+    }
+
+    /**
+     * Create comparator based on sort parameter
+     */
+    private Comparator<ItemDTO> getComparator(String sort) {
+        String[] sortParams = sort.split(",");
+        String field = sortParams[0];
+        boolean ascending = sortParams.length < 2 || "asc".equalsIgnoreCase(sortParams[1]);
+
+        Comparator<ItemDTO> comparator;
+
+        switch (field.toLowerCase()) {
+            case "name":
+                comparator = Comparator.comparing(ItemDTO::getName, String.CASE_INSENSITIVE_ORDER);
+                break;
+            case "currentbalance":
+            case "current_balance":
+                comparator = Comparator.comparing(dto ->
+                        dto.getCurrentBalance() != null ? dto.getCurrentBalance() : 0);
+                break;
+            case "minimumstock":
+            case "minimum_stock":
+                comparator = Comparator.comparing(ItemDTO::getMinimumStock);
+                break;
+            default:
+                comparator = Comparator.comparing(ItemDTO::getName, String.CASE_INSENSITIVE_ORDER);
+        }
+
+        return ascending ? comparator : comparator.reversed();
+    }
+
+    /**
+     * Get all items
      */
     public List<ItemDTO> getAllItems() {
-        return itemRepository.findAll()
-                .stream()
+        return itemRepository.findAll().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Get single item by ID
-     * Throws exception if not found
+     * Get item by ID
      */
     public ItemDTO getItemById(Long id) {
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Item not found with id: " + id));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
         return convertToDTO(item);
     }
 
     /**
      * Create new item
-     * @Transactional (write mode) - allows database writes
      */
-    @Transactional
     public ItemDTO createItem(ItemDTO itemDTO) {
-        // Business rule: No duplicate names
-        if (itemRepository.existsByName(itemDTO.getName())) {
-            throw new IllegalArgumentException(
-                    "Item with name '" + itemDTO.getName() + "' already exists");
-        }
+        Item item = new Item();
+        item.setName(itemDTO.getName());
+        item.setUnit(itemDTO.getUnit());
+        item.setMinimumStock(itemDTO.getMinimumStock());
+        item.setDescription(itemDTO.getDescription());
+        item.setDamagedQuantity(0);
 
-        // Convert DTO to Entity
-        Item item = convertToEntity(itemDTO);
-
-        // Save to database
         Item savedItem = itemRepository.save(item);
-
-        // Convert back to DTO for response
         return convertToDTO(savedItem);
     }
 
     /**
      * Update existing item
      */
-    @Transactional
     public ItemDTO updateItem(Long id, ItemDTO itemDTO) {
-        // Check if item exists
-        Item existingItem = itemRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Item not found with id: " + id));
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
 
-        // Check for duplicate name (excluding current item)
-        if (itemRepository.existsByName(itemDTO.getName()) &&
-                !existingItem.getName().equals(itemDTO.getName())) {
-            throw new IllegalArgumentException(
-                    "Item with name '" + itemDTO.getName() + "' already exists");
-        }
+        item.setName(itemDTO.getName());
+        item.setUnit(itemDTO.getUnit());
+        item.setMinimumStock(itemDTO.getMinimumStock());
+        item.setDescription(itemDTO.getDescription());
 
-        // Update fields
-        existingItem.setName(itemDTO.getName());
-        existingItem.setUnit(itemDTO.getUnit());
-        existingItem.setMinimumStock(itemDTO.getMinimumStock());
-        existingItem.setDescription(itemDTO.getDescription());
-
-        // Save updates (updatedAt timestamp auto-updates)
-        Item updatedItem = itemRepository.save(existingItem);
-
+        Item updatedItem = itemRepository.save(item);
         return convertToDTO(updatedItem);
     }
 
     /**
      * Delete item
-     * Business rule: Cannot delete if transactions exist
      */
-    @Transactional
     public void deleteItem(Long id) {
-        // Check if item exists
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Item not found with id: " + id));
-
-        // Business rule: Check for transactions
-        List<?> transactions = transactionRepository.findByItemId(id);
-        if (!transactions.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Cannot delete item with existing transactions. " +
-                            "Found " + transactions.size() + " transaction(s).");
-        }
-
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
         itemRepository.delete(item);
     }
 
     /**
-     * Calculate current balance for an item
+     * Record damaged quantity
      */
-    public Integer getCurrentBalance(Long itemId) {
-        Integer totalIn = transactionRepository.getTotalInByItemId(itemId);
-        Integer totalOut = transactionRepository.getTotalOutByItemId(itemId);
-        return totalIn - totalOut;
+    public ItemDTO recordDamagedQuantity(Long id, int damagedQuantity) {
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
+
+        // Add to existing damaged quantity
+        item.setDamagedQuantity(item.getDamagedQuantity() + damagedQuantity);
+
+        Item updatedItem = itemRepository.save(item);
+        return convertToDTO(updatedItem);
     }
 
     /**
-     * HELPER METHODS - Convert between Entity and DTO
+     * Get current balance for an item (calculated from transactions)
      */
+    public int getCurrentBalance(Long itemId) {
+        // Verify item exists
+        itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + itemId));
+
+        // Calculate balance from transactions
+        return calculateCurrentBalance(itemId);
+    }
+
+    /**
+     * Calculate current balance from stock transactions
+     * Balance = Total Stock-In - Total Stock-Out
+     */
+    private int calculateCurrentBalance(Long itemId) {
+        Integer totalIn = stockTransactionRepository.getTotalInByItemId(itemId);
+        Integer totalOut = stockTransactionRepository.getTotalOutByItemId(itemId);
+
+        int stockIn = (totalIn != null) ? totalIn : 0;
+        int stockOut = (totalOut != null) ? totalOut : 0;
+
+        return stockIn - stockOut;
+    }
 
     /**
      * Convert Item entity to ItemDTO
-     * Includes calculated fields (balance, low stock status)
      */
     private ItemDTO convertToDTO(Item item) {
         ItemDTO dto = new ItemDTO();
@@ -161,69 +207,13 @@ public class ItemService {
         dto.setUpdatedAt(item.getUpdatedAt());
         dto.setDamagedQuantity(item.getDamagedQuantity());
 
-        // Calculate current balance
-        Integer balance = getCurrentBalance(item.getId());
-        dto.setCurrentBalance(balance);
+        // Calculate current balance from transactions
+        int currentBalance = calculateCurrentBalance(item.getId());
+        dto.setCurrentBalance(currentBalance);
 
         // Determine if low stock
-        dto.setIsLowStock(balance < item.getMinimumStock());
+        dto.setIsLowStock(currentBalance <= item.getMinimumStock());
 
         return dto;
     }
-
-    /**
-     * Convert ItemDTO to Item entity (for creating/updating)
-     */
-    private Item convertToEntity(ItemDTO dto) {
-        Item item = new Item();
-        item.setName(dto.getName());
-        item.setUnit(dto.getUnit());
-        item.setMinimumStock(dto.getMinimumStock());
-        item.setDescription(dto.getDescription());
-        if (dto.getDamagedQuantity() != null) {
-            item.setDamagedQuantity(dto.getDamagedQuantity());
-        }
-        // Don't set id, createdAt, updatedAt - managed by JPA
-        return item;
-    }
-
-    /**
-     * Record damaged quantity for an item
-     * @param itemId Item ID
-     * @param damagedQty Quantity to record as damaged (added to existing)
-     * @return Updated ItemDTO
-     */
-    @Transactional
-    public ItemDTO recordDamagedQuantity(Long itemId, int damagedQty) {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + itemId));
-        int newDamaged = item.getDamagedQuantity() + damagedQty;
-        if (newDamaged < 0) newDamaged = 0;
-        item.setDamagedQuantity(newDamaged);
-        itemRepository.save(item);
-        return convertToDTO(item);
-    }
-
-    /**
-     * KEY CONCEPTS IN THIS CLASS:
-     *
-     * 1. DEPENDENCY INJECTION:
-     *    - Repositories are injected via constructor
-     *    - @RequiredArgsConstructor creates constructor automatically
-     *
-     * 2. TRANSACTION MANAGEMENT:
-     *    - @Transactional(readOnly = true) for queries (performance)
-     *    - @Transactional for writes (ensures consistency)
-     *
-     * 3. BUSINESS RULES:
-     *    - No duplicate names
-     *    - Can't delete items with transactions
-     *    - Validates before saving
-     *
-     * 4. SEPARATION OF CONCERNS:
-     *    - Service doesn't know about HTTP (no ResponseEntity)
-     *    - Service doesn't know about JSON (uses DTOs)
-     *    - Controller will handle HTTP/REST concerns
-     *
-    */
 }
