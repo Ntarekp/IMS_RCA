@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +26,16 @@ public class SupplierService {
     }
 
     public SupplierDTO createSupplier(SupplierDTO dto) {
+        // Check for duplicate name
+        if (supplierRepository.findByNameIgnoreCase(dto.getName()).isPresent()) {
+            throw new IllegalArgumentException("Supplier with name '" + dto.getName() + "' already exists.");
+        }
+
+        // Check for duplicate email
+        if (supplierRepository.findByEmailIgnoreCase(dto.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Supplier with email '" + dto.getEmail() + "' already exists.");
+        }
+
         Supplier supplier = new Supplier();
         updateEntityFromDTO(supplier, dto);
         supplier.setActive(true);
@@ -35,6 +46,18 @@ public class SupplierService {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id: " + id));
         
+        // Check for duplicate name (excluding current supplier)
+        Optional<Supplier> existingName = supplierRepository.findByNameIgnoreCaseAndIdIsNot(dto.getName(), id);
+        if (existingName.isPresent()) {
+            throw new IllegalArgumentException("Supplier with name '" + dto.getName() + "' already exists.");
+        }
+
+        // Check for duplicate email (excluding current supplier)
+        Optional<Supplier> existingEmail = supplierRepository.findByEmailIgnoreCaseAndIdIsNot(dto.getEmail(), id);
+        if (existingEmail.isPresent()) {
+            throw new IllegalArgumentException("Supplier with email '" + dto.getEmail() + "' already exists.");
+        }
+
         updateEntityFromDTO(supplier, dto);
         return convertToDTO(supplierRepository.save(supplier));
     }
