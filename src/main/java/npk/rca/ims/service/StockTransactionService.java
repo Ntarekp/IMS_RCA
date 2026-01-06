@@ -6,9 +6,11 @@ import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.exceptions.ResourceNotFoundException;
 import npk.rca.ims.model.Item;
 import npk.rca.ims.model.StockTransaction;
+import npk.rca.ims.model.Supplier;
 import npk.rca.ims.model.TransactionType;
 import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.StockTransactionRepository;
+import npk.rca.ims.repository.SupplierRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ public class StockTransactionService {
 
     private final StockTransactionRepository transactionRepository;
     private final ItemRepository itemRepository;
+    private final SupplierRepository supplierRepository;
 
     /**
      * Get all transactions
@@ -136,6 +139,13 @@ public class StockTransactionService {
         transaction.setReferenceNumber(transactionDTO.getReferenceNumber());
         transaction.setNotes(transactionDTO.getNotes());
         transaction.setRecordedBy(transactionDTO.getRecordedBy());
+        
+        // Link Supplier if provided (only for IN transactions usually, but flexible)
+        if (transactionDTO.getSupplierId() != null) {
+            Supplier supplier = supplierRepository.findById(transactionDTO.getSupplierId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id: " + transactionDTO.getSupplierId()));
+            transaction.setSupplier(supplier);
+        }
 
         // Save transaction
         StockTransaction savedTransaction = transactionRepository.save(transaction);
@@ -223,44 +233,12 @@ public class StockTransactionService {
         dto.setNotes(transaction.getNotes());
         dto.setRecordedBy(transaction.getRecordedBy());
         dto.setCreatedAt(transaction.getCreatedAt());
+        
+        if (transaction.getSupplier() != null) {
+            dto.setSupplierId(transaction.getSupplier().getId());
+            dto.setSupplierName(transaction.getSupplier().getName());
+        }
+        
         return dto;
     }
-
-    /**
-     * KEY BUSINESS LOGIC HIGHLIGHTS:
-     *
-     * 1. STOCK VALIDATION:
-     *    - Prevents negative inventory (can't OUT more than available)
-     *    - This is critical for data integrity!
-     *
-     * 2. BALANCE CALCULATION:
-     *    - Real-time calculation from transactions
-     *    - No separate balance table needed
-     *    - Single source of truth
-     *
-     * 3. REPORT GENERATION:
-     *    - Loops through all items
-     *    - Calculates balances on-the-fly
-     *    - Can filter by low stock
-     *
-     * 4. TRANSACTION IMMUTABILITY:
-     *    - No update/delete methods
-     *    - Once recorded, transactions are permanent
-     *    - Corrections done via new transactions
-     *
-     * SCENARIO EXAMPLE:
-     *
-     * Day 1: Record 100 sacks of rice IN
-     *   totalIn = 100, totalOut = 0, balance = 100
-     *
-     * Day 2: Record 30 sacks OUT (used for lunch)
-     *   totalIn = 100, totalOut = 30, balance = 70
-     *
-     * Day 3: Try to OUT 80 sacks
-     *   ERROR! Only 70 available. Transaction rejected.
-     *
-     * Day 4: Record 50 sacks IN (new purchase)
-     *   totalIn = 150, totalOut = 30, balance = 120
-     *
-     */
 }

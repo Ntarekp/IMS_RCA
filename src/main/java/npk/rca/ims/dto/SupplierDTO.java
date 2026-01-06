@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SupplierDTO {
-    
     private Long id;
 
     @NotBlank(message = "Company name is required")
@@ -27,6 +26,5 @@ public class SupplierDTO {
     private String email;
 
     private String itemsSupplied;
-    
     private boolean active;
 }

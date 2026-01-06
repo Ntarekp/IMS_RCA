@@ -18,26 +18,14 @@ public class SupplierController {
     private final SupplierService supplierService;
 
     @GetMapping
-    public ResponseEntity<List<SupplierDTO>> getAllSuppliers(@RequestParam(required = false) Boolean active) {
-        List<SupplierDTO> suppliers;
-        if (active != null && active) {
-            suppliers = supplierService.getActiveSuppliers();
-        } else {
-            suppliers = supplierService.getAllSuppliers();
-        }
-        return ResponseEntity.ok(suppliers);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<SupplierDTO> getSupplierById(@PathVariable Long id) {
-        SupplierDTO supplier = supplierService.getSupplierById(id);
-        return ResponseEntity.ok(supplier);
+    public ResponseEntity<List<SupplierDTO>> getAllActiveSuppliers() {
+        return ResponseEntity.ok(supplierService.getAllActiveSuppliers());
     }
 
     @PostMapping
     public ResponseEntity<SupplierDTO> createSupplier(@Valid @RequestBody SupplierDTO supplierDTO) {
         SupplierDTO createdSupplier = supplierService.createSupplier(supplierDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdSupplier);
+        return new ResponseEntity<>(createdSupplier, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
@@ -46,16 +34,9 @@ public class SupplierController {
         return ResponseEntity.ok(updatedSupplier);
     }
 
-    // Using a PATCH request for partial updates like changing status
-    @PatchMapping("/{id}/deactivate")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateSupplier(@PathVariable Long id) {
         supplierService.deactivateSupplier(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/reactivate")
-    public ResponseEntity<Void> reactivateSupplier(@PathVariable Long id) {
-        supplierService.reactivateSupplier(id);
         return ResponseEntity.noContent().build();
     }
 }
