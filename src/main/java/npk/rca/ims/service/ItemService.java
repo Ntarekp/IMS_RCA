@@ -3,9 +3,12 @@ package npk.rca.ims.service;
 import lombok.RequiredArgsConstructor;
 import npk.rca.ims.dto.ItemDTO;
 import npk.rca.ims.model.Item;
+import npk.rca.ims.model.User;
 import npk.rca.ims.exceptions.ResourceNotFoundException;
 import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.StockTransactionRepository;
+import npk.rca.ims.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +24,8 @@ public class ItemService {
 
     private final ItemRepository itemRepository;
     private final StockTransactionRepository stockTransactionRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Get filtered and sorted list of items
@@ -156,6 +161,24 @@ public class ItemService {
         stockTransactionRepository.deleteAll(stockTransactionRepository.findByItemId(id));
 
         itemRepository.delete(item);
+    }
+
+    /**
+     * Securely delete item with password verification
+     */
+    @Transactional
+    public void deleteItemWithPasswordVerification(Long id, String username, String password) {
+        // 1. Verify user exists
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        // 2. Verify password
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("Incorrect password. Deletion denied.");
+        }
+
+        // 3. Proceed with deletion
+        deleteItem(id);
     }
 
     /**
