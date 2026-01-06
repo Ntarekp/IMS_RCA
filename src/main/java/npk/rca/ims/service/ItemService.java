@@ -50,7 +50,7 @@ public class ItemService {
 
         // Filter by status (low stock vs adequate stock) - AFTER DTO conversion
         if (status != null && !status.isEmpty()) {
-            if ("Birahagije".equalsIgnoreCase(status)) {
+            if ("lBirahagije".equalsIgnoreCase(status)) {
                 // Low stock items
                 itemDTOs = itemDTOs.stream()
                         .filter(ItemDTO::getIsLowStock)
