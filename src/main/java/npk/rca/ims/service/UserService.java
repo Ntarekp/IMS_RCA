@@ -110,9 +110,17 @@ public class UserService {
             user.setEmail(newEmail.trim().toLowerCase());
         }
         
-        // Note: User entity doesn't have name, phone, department fields yet
-        // For now, we'll store them in a notes field or extend the entity
-        // This is a placeholder - you may want to extend User entity with these fields
+        if (name != null) {
+            user.setName(name);
+        }
+        
+        if (phone != null) {
+            user.setPhone(phone);
+        }
+        
+        if (department != null) {
+            user.setDepartment(department);
+        }
         
         return userRepository.save(user);
     }
@@ -150,4 +158,3 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 }
-

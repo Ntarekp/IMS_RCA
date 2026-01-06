@@ -13,7 +13,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -34,10 +37,8 @@ public class StockTransactionService {
      * Get all transactions
      */
     public List<StockTransactionDTO> getAllTransactions() {
-        return transactionRepository.findAll()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        List<StockTransaction> transactions = transactionRepository.findAll();
+        return calculateBalancesForTransactions(transactions);
     }
 
     /**
@@ -49,10 +50,8 @@ public class StockTransactionService {
             throw new ResourceNotFoundException("Item not found with id: " + itemId);
         }
 
-        return transactionRepository.findByItemId(itemId)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        List<StockTransaction> transactions = transactionRepository.findByItemId(itemId);
+        return calculateBalancesForTransactions(transactions);
     }
 
     /**
@@ -65,10 +64,46 @@ public class StockTransactionService {
             throw new IllegalArgumentException("Start date must be before end date");
         }
 
-        return transactionRepository.findByTransactionDateBetween(startDate, endDate)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        List<StockTransaction> transactions = transactionRepository.findByTransactionDateBetween(startDate, endDate);
+        return calculateBalancesForTransactions(transactions);
+    }
+
+    /**
+     * Helper method to convert transactions to DTOs and calculate running balances
+     * This ensures the frontend receives the "Balance After" for each transaction
+     */
+    private List<StockTransactionDTO> calculateBalancesForTransactions(List<StockTransaction> transactions) {
+        // Sort transactions by date and creation time to ensure correct order
+        transactions.sort(Comparator.comparing(StockTransaction::getTransactionDate)
+                .thenComparing(StockTransaction::getCreatedAt));
+
+        // Group by item to calculate balances per item
+        Map<Long, List<StockTransaction>> transactionsByItem = transactions.stream()
+                .collect(Collectors.groupingBy(t -> t.getItem().getId()));
+
+        List<StockTransactionDTO> resultDTOs = new ArrayList<>();
+
+        // Calculate running balance for each item's transaction history
+        for (List<StockTransaction> itemTransactions : transactionsByItem.values()) {
+            int runningBalance = 0;
+            for (StockTransaction t : itemTransactions) {
+                if (t.getTransactionType() == TransactionType.IN) {
+                    runningBalance += t.getQuantity();
+                } else {
+                    runningBalance -= t.getQuantity();
+                }
+                
+                StockTransactionDTO dto = convertToDTO(t);
+                dto.setBalanceAfter(runningBalance);
+                resultDTOs.add(dto);
+            }
+        }
+
+        // Re-sort the final list by date descending (newest first) for display
+        resultDTOs.sort(Comparator.comparing(StockTransactionDTO::getTransactionDate)
+                .thenComparing(StockTransactionDTO::getCreatedAt).reversed());
+
+        return resultDTOs;
     }
 
     /**
@@ -105,7 +140,13 @@ public class StockTransactionService {
         // Save transaction
         StockTransaction savedTransaction = transactionRepository.save(transaction);
 
-        return convertToDTO(savedTransaction);
+        // Calculate the new balance to return in the DTO
+        Integer newBalance = calculateBalance(item.getId()); // This will include the newly saved transaction
+        
+        StockTransactionDTO resultDTO = convertToDTO(savedTransaction);
+        resultDTO.setBalanceAfter(newBalance);
+        
+        return resultDTO;
     }
 
     /**
@@ -135,7 +176,11 @@ public class StockTransactionService {
     private Integer calculateBalance(Long itemId) {
         Integer totalIn = transactionRepository.getTotalInByItemId(itemId);
         Integer totalOut = transactionRepository.getTotalOutByItemId(itemId);
-        return totalIn - totalOut;
+        
+        int in = (totalIn != null) ? totalIn : 0;
+        int out = (totalOut != null) ? totalOut : 0;
+        
+        return in - out;
     }
 
     /**
@@ -144,14 +189,17 @@ public class StockTransactionService {
     private StockBalanceDTO calculateItemBalance(Item item) {
         Integer totalIn = transactionRepository.getTotalInByItemId(item.getId());
         Integer totalOut = transactionRepository.getTotalOutByItemId(item.getId());
-        Integer balance = totalIn - totalOut;
+        
+        int in = (totalIn != null) ? totalIn : 0;
+        int out = (totalOut != null) ? totalOut : 0;
+        int balance = in - out;
 
         StockBalanceDTO dto = new StockBalanceDTO();
         dto.setItemId(item.getId());
         dto.setItemName(item.getName());
         dto.setUnit(item.getUnit());
-        dto.setTotalIn(totalIn);
-        dto.setTotalOut(totalOut);
+        dto.setTotalIn(in);
+        dto.setTotalOut(out);
         dto.setCurrentBalance(balance);
         dto.setMinimumStock(item.getMinimumStock());
         dto.setIsLowStock(balance < item.getMinimumStock());

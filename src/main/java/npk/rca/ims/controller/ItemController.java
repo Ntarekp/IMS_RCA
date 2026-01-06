@@ -28,7 +28,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/items")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")  // Allow all origins (change in production!)
 public class ItemController {
 
     private final ItemService itemService;

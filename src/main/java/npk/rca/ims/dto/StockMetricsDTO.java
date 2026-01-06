@@ -13,4 +13,10 @@ public class StockMetricsDTO {
     private long lowStock;
     private long damaged;
     private long thisMonth;
+    
+    // Comparison metrics (vs last month)
+    private double totalChange;
+    private double lowStockChange;
+    private double damagedChange;
+    private double thisMonthChange;
 }

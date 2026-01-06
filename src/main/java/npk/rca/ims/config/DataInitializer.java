@@ -47,42 +47,23 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Default user created successfully!");
             log.info("Email: {}", defaultEmail);
             log.info("Password: {} (encrypted in database)", defaultPassword);
-            log.info("Encrypted password hash: {}", encryptedPassword);
             log.info("Role: ADMIN");
             log.info("==========================================");
         } else {
-            // User exists - verify and update password if needed
-            boolean passwordMatches = passwordEncoder.matches(defaultPassword, existingUser.getPassword());
+            // Update the existing user's password to ensure it matches the expected default
+            // This fixes issues where the DB has an old or different password
+            String encryptedPassword = passwordEncoder.encode(defaultPassword);
+            existingUser.setPassword(encryptedPassword);
+            existingUser.setRole("ADMIN"); // Ensure role is ADMIN
+            existingUser.setEnabled(true); // Ensure account is enabled
             
-            if (!passwordMatches) {
-                log.warn("==========================================");
-                log.warn("Existing user password doesn't match!");
-                log.warn("Updating password for user: {}", defaultEmail);
-                log.warn("Old password hash: {}", existingUser.getPassword());
-                
-                // Force update password
-                String newEncryptedPassword = passwordEncoder.encode(defaultPassword);
-                existingUser.setPassword(newEncryptedPassword);
-                existingUser.setRole("ADMIN"); // Ensure role is correct
-                existingUser.setEnabled(true); // Ensure enabled
-                userRepository.save(existingUser);
-                
-                log.warn("New password hash: {}", newEncryptedPassword);
-                log.warn("Password updated successfully!");
-                log.warn("==========================================");
-            } else {
-                log.info("Default user already exists: {} (password verified)", defaultEmail);
-            }
+            userRepository.save(existingUser);
             
-            // Verify user is enabled and has correct role
-            if (!existingUser.isEnabled() || !"ADMIN".equals(existingUser.getRole())) {
-                log.warn("Updating user settings: enabled={}, role={}", existingUser.isEnabled(), existingUser.getRole());
-                existingUser.setEnabled(true);
-                existingUser.setRole("ADMIN");
-                userRepository.save(existingUser);
-                log.info("User settings updated");
-            }
+            log.info("==========================================");
+            log.info("Default user updated successfully!");
+            log.info("Email: {}", defaultEmail);
+            log.info("Password: {} (reset to default)", defaultPassword);
+            log.info("==========================================");
         }
     }
 }
-

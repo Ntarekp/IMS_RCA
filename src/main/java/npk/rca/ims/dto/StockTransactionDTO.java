@@ -73,6 +73,12 @@ public class StockTransactionDTO {
     private LocalDateTime createdAt;
 
     /**
+     * Calculated field: Balance after this transaction
+     * This is not stored in the transaction table but calculated on the fly
+     */
+    private Integer balanceAfter;
+
+    /**
      * REQUEST EXAMPLE (POST /api/transactions):
      * {
      *   "itemId": 1,
@@ -95,7 +101,8 @@ public class StockTransactionDTO {
      *   "referenceNumber": "PO-2024-001",
      *   "notes": "Monthly stock replenishment",
      *   "recordedBy": "John Doe",
-     *   "createdAt": "2024-12-01T14:30:00"
+     *   "createdAt": "2024-12-01T14:30:00",
+     *   "balanceAfter": 150
      * }
      */
 }

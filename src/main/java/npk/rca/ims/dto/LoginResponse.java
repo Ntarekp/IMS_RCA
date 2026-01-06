@@ -23,4 +23,3 @@ public class LoginResponse {
         this.message = message;
     }
 }
-

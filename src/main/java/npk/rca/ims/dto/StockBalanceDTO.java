@@ -17,9 +17,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class StockBalanceDTO {
 
-    /**
-     * Item details
-     */
     private Long itemId;
     private String itemName;
     private String unit;

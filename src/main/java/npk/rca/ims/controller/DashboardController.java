@@ -5,7 +5,6 @@ import npk.rca.ims.dto.StockMetricsDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.service.StockService;
 import npk.rca.ims.service.StockTransactionService;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class DashboardController {
 
     private final StockService stockService;
@@ -121,4 +119,3 @@ public class DashboardController {
         return ResponseEntity.ok(recent);
     }
 }
-

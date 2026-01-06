@@ -19,7 +19,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 public class AdminController {
 
@@ -109,4 +108,3 @@ public class AdminController {
         }
     }
 }
-
