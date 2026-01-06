@@ -82,6 +82,13 @@ public class StockTransaction {
     private String recordedBy;
 
     /**
+     * Supplier for IN transactions
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
+
+    /**
      * System timestamp - when was this record created in the system?
      * Different from transactionDate:
      *   - transactionDate = when the physical movement happened

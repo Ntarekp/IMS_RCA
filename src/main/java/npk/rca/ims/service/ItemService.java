@@ -42,6 +42,12 @@ public class ItemService {
             itemStream = itemStream.filter(item ->
                     item.getName().toLowerCase().contains(name.toLowerCase()));
         }
+        
+        // Filter by category (exact match)
+        if (category != null && !category.isEmpty()) {
+            itemStream = itemStream.filter(item -> 
+                    item.getDescription() != null && item.getDescription().equalsIgnoreCase(category));
+        }
 
         // Convert to DTOs (with calculated balance)
         List<ItemDTO> itemDTOs = itemStream
@@ -50,15 +56,20 @@ public class ItemService {
 
         // Filter by status (low stock vs adequate stock) - AFTER DTO conversion
         if (status != null && !status.isEmpty()) {
-            if ("lBirahagije".equalsIgnoreCase(status)) {
+            if ("Birahagije".equalsIgnoreCase(status)) {
+                // Adequate stock items
+                itemDTOs = itemDTOs.stream()
+                        .filter(dto -> !dto.getIsLowStock())
+                        .collect(Collectors.toList());
+            } else if ("Mucye".equalsIgnoreCase(status)) {
                 // Low stock items
                 itemDTOs = itemDTOs.stream()
                         .filter(ItemDTO::getIsLowStock)
                         .collect(Collectors.toList());
-            } else if ("Birahagera".equalsIgnoreCase(status)) {
-                // Adequate stock items
+            } else if ("Byashize".equalsIgnoreCase(status)) {
+                // Out of stock items
                 itemDTOs = itemDTOs.stream()
-                        .filter(dto -> !dto.getIsLowStock())
+                        .filter(dto -> dto.getCurrentBalance() <= 0)
                         .collect(Collectors.toList());
             }
         }
