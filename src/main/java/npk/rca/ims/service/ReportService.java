@@ -8,12 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
+import npk.rca.ims.dto.SupplierDTO;
 import npk.rca.ims.model.TransactionType;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ClassPathResource;
@@ -40,9 +40,10 @@ public class ReportService {
     private static final String DATETIME_FORMAT = "dd-MM-yyyy HH:mm";
     private static final String DEFAULT_UNIT = "Kg";
     private static final String PLACEHOLDER = "-";
-    private static final float LOGO_WIDTH = 500f; // 500px width
 
     private final StockTransactionService transactionService;
+    private final StockBalanceService balanceService;
+    private final SupplierService supplierService;
 
     // ============ TRANSACTION REPORTS ============
 
@@ -124,7 +125,7 @@ public class ReportService {
 
     public byte[] generateBalanceReportPdf() {
         try {
-            List<StockBalanceDTO> balances = transactionService.generateBalanceReport();
+            List<StockBalanceDTO> balances = balanceService.getAllBalances();
             return createBalancePdfReport(balances);
         } catch (Exception e) {
             log.error("Error generating balance PDF report", e);
@@ -134,7 +135,7 @@ public class ReportService {
 
     public byte[] generateBalanceReportExcel() {
         try {
-            List<StockBalanceDTO> balances = transactionService.generateBalanceReport();
+            List<StockBalanceDTO> balances = balanceService.getAllBalances();
             return createBalanceExcelReport(balances);
         } catch (Exception e) {
             log.error("Error generating balance Excel report", e);
@@ -146,7 +147,7 @@ public class ReportService {
 
     public byte[] generateLowStockReportPdf() {
         try {
-            List<StockBalanceDTO> lowStockItems = transactionService.getLowStockItems();
+            List<StockBalanceDTO> lowStockItems = balanceService.getLowStockItems();
             return createLowStockPdfReport(lowStockItems);
         } catch (Exception e) {
             log.error("Error generating low stock PDF report", e);
@@ -156,11 +157,33 @@ public class ReportService {
 
     public byte[] generateLowStockReportExcel() {
         try {
-            List<StockBalanceDTO> lowStockItems = transactionService.getLowStockItems();
+            List<StockBalanceDTO> lowStockItems = balanceService.getLowStockItems();
             return createLowStockExcelReport(lowStockItems);
         } catch (Exception e) {
             log.error("Error generating low stock Excel report", e);
             throw new ReportGenerationException("Failed to generate low stock Excel report", e);
+        }
+    }
+
+    // ============ SUPPLIER REPORTS ============
+
+    public byte[] generateSupplierReportPdf() {
+        try {
+            List<SupplierDTO> suppliers = supplierService.getAllActiveSuppliers();
+            return createSupplierPdfReport(suppliers);
+        } catch (Exception e) {
+            log.error("Error generating supplier PDF report", e);
+            throw new ReportGenerationException("Failed to generate supplier PDF report", e);
+        }
+    }
+
+    public byte[] generateSupplierReportExcel() {
+        try {
+            List<SupplierDTO> suppliers = supplierService.getAllActiveSuppliers();
+            return createSupplierExcelReport(suppliers);
+        } catch (Exception e) {
+            log.error("Error generating supplier Excel report", e);
+            throw new ReportGenerationException("Failed to generate supplier Excel report", e);
         }
     }
 
@@ -272,16 +295,14 @@ public class ReportService {
 
             Sheet sheet = workbook.createSheet("Transactions");
 
-            // Add large header image - returns the row number where content should start
-            int startRow = addExcelHeaderImage(workbook, sheet);
-
-            addExcelTitle(workbook, sheet, reportTitle, startRow);
+            addExcelHeaderImage(workbook, sheet);
+            addExcelTitle(workbook, sheet, reportTitle, 4);
 
             if (startDate != null && endDate != null) {
-                addExcelDateRange(workbook, sheet, startDate, endDate, startRow + 1);
+                addExcelDateRange(workbook, sheet, startDate, endDate, 5);
             }
 
-            int headerRow = (startDate != null && endDate != null) ? startRow + 2 : startRow + 1;
+            int headerRow = (startDate != null && endDate != null) ? 6 : 5;
             createTransactionExcelHeader(workbook, sheet, headerRow);
 
             if (transactions.isEmpty()) {
@@ -399,15 +420,15 @@ public class ReportService {
 
             Sheet sheet = workbook.createSheet("Stock Balance");
 
-            int startRow = addExcelHeaderImage(workbook, sheet);
-            addExcelTitle(workbook, sheet, "Current Stock Balance Report", startRow);
+            addExcelHeaderImage(workbook, sheet);
+            addExcelTitle(workbook, sheet, "Current Stock Balance Report", 4);
 
-            createBalanceExcelHeader(workbook, sheet, startRow + 1);
+            createBalanceExcelHeader(workbook, sheet, 5);
 
             if (balances.isEmpty()) {
-                addExcelNoDataMessage(workbook, sheet, startRow + 2);
+                addExcelNoDataMessage(workbook, sheet, 6);
             } else {
-                populateBalanceExcelData(workbook, sheet, balances, startRow + 2);
+                populateBalanceExcelData(workbook, sheet, balances, 6);
             }
 
             autoSizeColumns(sheet, 5);
@@ -494,39 +515,99 @@ public class ReportService {
     }
 
     private byte[] createLowStockExcelReport(List<StockBalanceDTO> lowStockItems) throws IOException {
-        return createBalanceExcelReport(lowStockItems);
+        return createBalanceExcelReport(lowStockItems); // Reuse balance report structure
+    }
+
+    // ============ SUPPLIER REPORTS ============
+
+    private byte[] createSupplierPdfReport(List<SupplierDTO> suppliers) throws DocumentException, IOException {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            addHeaderImage(document);
+            addTitle(document, "Active Suppliers Report");
+            addTimestamp(document);
+
+            if (suppliers.isEmpty()) {
+                addNoDataMessage(document);
+            } else {
+                PdfPTable table = new PdfPTable(4);
+                table.setWidthPercentage(100);
+                table.setWidths(new float[]{3, 3, 3, 4});
+
+                String[] headers = {"Company Name", "Contact Person", "Phone", "Email"};
+                for (String header : headers) {
+                    PdfPCell cell = new PdfPCell(
+                            new Phrase(header, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE))
+                    );
+                    cell.setBackgroundColor(Color.DARK_GRAY);
+                    cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    cell.setPadding(5);
+                    table.addCell(cell);
+                }
+
+                for (SupplierDTO supplier : suppliers) {
+                    addCell(table, supplier.getName());
+                    addCell(table, supplier.getContactPerson());
+                    addCell(table, supplier.getPhone());
+                    addCell(table, supplier.getEmail());
+                }
+                document.add(table);
+            }
+
+            document.close();
+            return out.toByteArray();
+        }
+    }
+
+    private byte[] createSupplierExcelReport(List<SupplierDTO> suppliers) throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Suppliers");
+
+            addExcelHeaderImage(workbook, sheet);
+            addExcelTitle(workbook, sheet, "Active Suppliers Report", 4);
+
+            Row headerRow = sheet.createRow(5);
+            String[] headers = {"Company Name", "Contact Person", "Phone", "Email", "Items Supplied"};
+            CellStyle headerStyle = createHeaderCellStyle(workbook);
+
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowNum = 6;
+            for (SupplierDTO supplier : suppliers) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(supplier.getName());
+                row.createCell(1).setCellValue(supplier.getContactPerson());
+                row.createCell(2).setCellValue(supplier.getPhone());
+                row.createCell(3).setCellValue(supplier.getEmail());
+                row.createCell(4).setCellValue(supplier.getItemsSupplied());
+            }
+
+            autoSizeColumns(sheet, 5);
+
+            workbook.write(out);
+            return out.toByteArray();
+        }
     }
 
     // ============ COMMON PDF HELPERS ============
 
-    /**
-     * Add header image to PDF document with 500px width and auto height
-     */
     private void addHeaderImage(Document document) {
         try {
             ClassPathResource imgFile = new ClassPathResource(HEADER_IMAGE_PATH);
             if (imgFile.exists()) {
                 Image image = Image.getInstance(imgFile.getURL());
-
-                // Get original dimensions
-                float originalWidth = image.getWidth();
-                float originalHeight = image.getHeight();
-
-                // Calculate aspect ratio and set width to 500px
-                float aspectRatio = originalHeight / originalWidth;
-                float newWidth = LOGO_WIDTH;
-                float newHeight = newWidth * aspectRatio;
-
-                // Scale to exact dimensions
-                image.scaleAbsolute(newWidth, newHeight);
+                image.scaleToFit(500, 100);
                 image.setAlignment(Element.ALIGN_CENTER);
-
                 document.add(image);
-
-                // Add spacing after logo
-                document.add(new Paragraph(" ")); // Extra space
-            } else {
-                log.warn("Header image not found at path: {}", HEADER_IMAGE_PATH);
             }
         } catch (Exception e) {
             log.warn("Failed to add header image to PDF", e);
@@ -598,11 +679,7 @@ public class ReportService {
 
     // ============ COMMON EXCEL HELPERS ============
 
-    /**
-     * Add header image to Excel sheet with 500px width and auto height
-     * Returns the row number where content should start after the image
-     */
-    private int addExcelHeaderImage(Workbook workbook, Sheet sheet) {
+    private void addExcelHeaderImage(Workbook workbook, Sheet sheet) {
         try {
             ClassPathResource imgFile = new ClassPathResource(HEADER_IMAGE_PATH);
             if (imgFile.exists()) {
@@ -613,36 +690,17 @@ public class ReportService {
                     CreationHelper helper = workbook.getCreationHelper();
                     Drawing<?> drawing = sheet.createDrawingPatriarch();
                     ClientAnchor anchor = helper.createClientAnchor();
-
-                    // Position: Start at A1
                     anchor.setCol1(0);
                     anchor.setRow1(0);
-
-                    // End position: Span across columns to achieve ~500px width
-                    // Assuming standard column width, spanning 10 columns ≈ 500px
                     anchor.setCol2(10);
-
-
-                    anchor.setRow2(12);
+                    anchor.setRow2(4);
 
                     Picture pict = drawing.createPicture(anchor, pictureIdx);
-
-                    // Don't call resize() to maintain our custom sizing
-                    // pict.resize(); // REMOVED - this would override our anchor settings
-
-                    // Merge cells in the logo area for cleaner look
-                    sheet.addMergedRegion(new CellRangeAddress(0, 7, 0, 9));
-
-                    // Return the row where content should start (after logo)
-                    return 9; // Start content at row 9 (after rows 0-8)
+                    pict.resize(1.0, 1.0);
                 }
-            } else {
-                log.warn("Header image not found at path: {}", HEADER_IMAGE_PATH);
-                return 0; // Start at top if no image
             }
         } catch (Exception e) {
             log.warn("Failed to add header image to Excel", e);
-            return 0; // Start at top if error
         }
     }
 
@@ -658,9 +716,6 @@ public class ReportService {
         titleFont.setFontHeightInPoints((short) 14);
         titleStyle.setFont(titleFont);
         titleCell.setCellStyle(titleStyle);
-
-        // Make title row taller for better visibility
-        titleRow.setHeightInPoints(20);
     }
 
     private void addExcelDateRange(Workbook workbook, Sheet sheet, LocalDate startDate, LocalDate endDate, int rowNum) {

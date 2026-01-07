@@ -55,6 +55,7 @@ public class StockBalanceDTO {
         }
     }
 
+
     /**
      * REPORT RESPONSE EXAMPLE:
      * GET /api/reports/balance

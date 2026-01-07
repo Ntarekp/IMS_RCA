@@ -3,7 +3,7 @@ package npk.rca.ims.controller;
 import lombok.RequiredArgsConstructor;
 import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.service.ReportService;
-import npk.rca.ims.service.StockBalanceService;
+import npk.rca.ims.service.StockTransactionService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -21,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReportController {
 
-    private final StockBalanceService balanceService;
+    private final StockTransactionService transactionService;
     private final ReportService reportService;
 
     /**
@@ -29,7 +29,7 @@ public class ReportController {
      */
     @GetMapping("/balance")
     public ResponseEntity<List<StockBalanceDTO>> getBalanceReport() {
-        List<StockBalanceDTO> report = balanceService.getAllBalances();
+        List<StockBalanceDTO> report = transactionService.generateBalanceReport();
         return ResponseEntity.ok(report);
     }
 
@@ -38,7 +38,7 @@ public class ReportController {
      */
     @GetMapping("/low-stock")
     public ResponseEntity<List<StockBalanceDTO>> getLowStockReport() {
-        List<StockBalanceDTO> report = balanceService.getLowStockItems();
+        List<StockBalanceDTO> report = transactionService.getLowStockItems();
         return ResponseEntity.ok(report);
     }
 
@@ -77,6 +77,42 @@ public class ReportController {
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=transaction_report.xlsx")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(excelContent);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * GET /api/reports/export/suppliers/pdf
+     * Export active suppliers as PDF
+     */
+    @GetMapping("/export/suppliers/pdf")
+    public ResponseEntity<byte[]> exportSuppliersPdf() {
+        try {
+            byte[] pdfContent = reportService.generateSupplierReportPdf();
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=suppliers_report.pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfContent);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * GET /api/reports/export/suppliers/excel
+     * Export active suppliers as Excel
+     */
+    @GetMapping("/export/suppliers/excel")
+    public ResponseEntity<byte[]> exportSuppliersExcel() {
+        try {
+            byte[] excelContent = reportService.generateSupplierReportExcel();
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=suppliers_report.xlsx")
                     .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                     .body(excelContent);
         } catch (Exception e) {
