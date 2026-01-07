@@ -35,18 +35,30 @@ public class JwtService {
         claims.put("role", user.getRole());
         claims.put("userId", user.getId());
         
-        return createToken(claims, user.getEmail());
+        return createToken(claims, user.getEmail(), expiration);
+    }
+
+    /**
+     * Generate Password Reset Token (Short lived: 15 mins)
+     */
+    public String generateResetToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "RESET_PASSWORD");
+        claims.put("email", user.getEmail());
+        
+        // 15 minutes expiration
+        return createToken(claims, user.getEmail(), 900000L);
     }
 
     /**
      * Create JWT token with claims
      */
-    private String createToken(Map<String, Object> claims, String subject) {
+    private String createToken(Map<String, Object> claims, String subject, Long expirationTime) {
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey())
                 .compact();
     }

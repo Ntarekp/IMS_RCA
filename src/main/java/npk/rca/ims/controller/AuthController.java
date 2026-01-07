@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import npk.rca.ims.dto.*;
 import npk.rca.ims.model.User;
+import npk.rca.ims.service.EmailService;
 import npk.rca.ims.service.JwtService;
 import npk.rca.ims.service.UserService;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * AuthController - Authentication endpoints
@@ -28,6 +30,7 @@ public class AuthController {
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final EmailService emailService;
 
     /**
      * POST /api/auth/login
@@ -62,6 +65,58 @@ public class AuthController {
             log.error("An error occurred during login for email: {}", loginRequest.getEmail(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new LoginResponse(null, null, null, "An error occurred during login: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/auth/forgot-password
+     * Initiate password reset
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        if (email == null || email.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        }
+
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            String token = jwtService.generateResetToken(user);
+            emailService.sendPasswordResetEmail(user.getEmail(), token);
+        }
+        
+        // Always return success to prevent email enumeration
+        return ResponseEntity.ok(Map.of("message", "If an account exists with that email, a password reset link has been sent."));
+    }
+
+    /**
+     * POST /api/auth/reset-password
+     * Complete password reset
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        try {
+            if (!jwtService.validateToken(request.getToken())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Invalid or expired token"));
+            }
+
+            if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Passwords do not match"));
+            }
+
+            String email = jwtService.extractEmail(request.getToken());
+            // We can reuse the changePassword logic but we need to bypass old password check
+            // So we'll use a new method in UserService or just update directly if we trust the token
+            // Since UserService.changePassword requires old password, let's add a resetPassword method to UserService
+            
+            userService.resetPassword(email, request.getNewPassword());
+            
+            return ResponseEntity.ok(Map.of("message", "Password has been reset successfully"));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", "Failed to reset password: " + e.getMessage()));
         }
     }
 

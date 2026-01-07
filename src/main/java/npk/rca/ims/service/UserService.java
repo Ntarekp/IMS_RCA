@@ -162,6 +162,26 @@ public class UserService {
     }
 
     /**
+     * Reset user password (without old password check)
+     */
+    @Transactional
+    public User resetPassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        
+        // Validate new password
+        if (newPassword == null || newPassword.length() < 8) {
+            throw new IllegalArgumentException("New password must be at least 8 characters long");
+        }
+        
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        
+        log.info("Password reset successfully for user: {}", email);
+        return userRepository.save(user);
+    }
+
+    /**
      * Get current user profile
      */
     public User getProfile(String email) {
