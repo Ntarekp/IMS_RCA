@@ -50,6 +50,9 @@ public class User {
     @Column(length = 100)
     private String department;
 
+    @Column(length = 100)
+    private String location;
+
     // Settings fields
     @Column(nullable = false)
     private boolean emailNotifications = true;

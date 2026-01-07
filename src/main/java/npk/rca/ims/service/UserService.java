@@ -104,6 +104,7 @@ public class UserService {
             String name, 
             String phone, 
             String department,
+            String location,
             Boolean emailNotifications,
             Boolean smsNotifications,
             Boolean twoFactorAuth,
@@ -124,6 +125,7 @@ public class UserService {
         if (name != null) user.setName(name);
         if (phone != null) user.setPhone(phone);
         if (department != null) user.setDepartment(department);
+        if (location != null) user.setLocation(location);
         
         if (emailNotifications != null) user.setEmailNotifications(emailNotifications);
         if (smsNotifications != null) user.setSmsNotifications(smsNotifications);
