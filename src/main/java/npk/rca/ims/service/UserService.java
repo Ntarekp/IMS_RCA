@@ -98,7 +98,16 @@ public class UserService {
      * Update user profile
      */
     @Transactional
-    public User updateProfile(String email, String newEmail, String name, String phone, String department) {
+    public User updateProfile(
+            String email, 
+            String newEmail, 
+            String name, 
+            String phone, 
+            String department,
+            Boolean emailNotifications,
+            Boolean smsNotifications,
+            Boolean twoFactorAuth
+    ) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
         
@@ -110,17 +119,13 @@ public class UserService {
             user.setEmail(newEmail.trim().toLowerCase());
         }
         
-        if (name != null) {
-            user.setName(name);
-        }
+        if (name != null) user.setName(name);
+        if (phone != null) user.setPhone(phone);
+        if (department != null) user.setDepartment(department);
         
-        if (phone != null) {
-            user.setPhone(phone);
-        }
-        
-        if (department != null) {
-            user.setDepartment(department);
-        }
+        if (emailNotifications != null) user.setEmailNotifications(emailNotifications);
+        if (smsNotifications != null) user.setSmsNotifications(smsNotifications);
+        if (twoFactorAuth != null) user.setTwoFactorAuth(twoFactorAuth);
         
         return userRepository.save(user);
     }

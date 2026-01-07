@@ -50,6 +50,16 @@ public class User {
     @Column(length = 100)
     private String department;
 
+    // Settings fields
+    @Column(nullable = false)
+    private boolean emailNotifications = true;
+
+    @Column(nullable = false)
+    private boolean smsNotifications = false;
+
+    @Column(nullable = false)
+    private boolean twoFactorAuth = false;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

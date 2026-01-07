@@ -13,8 +13,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UpdateProfileRequest {
     
-    private String name; // Full name (optional, stored in notes or separate field)
+    private String name; // Full name
     private String email;
     private String phone;
     private String department;
+    
+    // Settings
+    private Boolean emailNotifications;
+    private Boolean smsNotifications;
+    private Boolean twoFactorAuth;
 }

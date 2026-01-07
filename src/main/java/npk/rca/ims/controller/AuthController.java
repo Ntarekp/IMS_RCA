@@ -32,20 +32,6 @@ public class AuthController {
     /**
      * POST /api/auth/login
      * Authenticate user and return JWT token
-     * <p>
-     * Request body:
-     * {
-     *   "email": "ntarekayitare@gmail.com",
-     *   "password": "RcaIMS@1234.5"
-     * }
-     * <p>
-     * Response:
-     * {
-     *   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-     *   "email": "ntarekayitare@gmail.com",
-     *   "role": "ADMIN",
-     *   "message": "Login successful"
-     * }
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
@@ -129,6 +115,11 @@ public class AuthController {
             response.put("phone", user.getPhone());
             response.put("department", user.getDepartment());
             
+            // Settings
+            response.put("emailNotifications", user.isEmailNotifications());
+            response.put("smsNotifications", user.isSmsNotifications());
+            response.put("twoFactorAuth", user.isTwoFactorAuth());
+            
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
@@ -159,7 +150,10 @@ public class AuthController {
                 request.getEmail(),
                 request.getName(),
                 request.getPhone(),
-                request.getDepartment()
+                request.getDepartment(),
+                request.getEmailNotifications(),
+                request.getSmsNotifications(),
+                request.getTwoFactorAuth()
             );
             
             Map<String, Object> response = new HashMap<>();
@@ -169,6 +163,11 @@ public class AuthController {
             response.put("name", updatedUser.getName());
             response.put("phone", updatedUser.getPhone());
             response.put("department", updatedUser.getDepartment());
+            
+            // Settings
+            response.put("emailNotifications", updatedUser.isEmailNotifications());
+            response.put("smsNotifications", updatedUser.isSmsNotifications());
+            response.put("twoFactorAuth", updatedUser.isTwoFactorAuth());
             
             return ResponseEntity.ok(response);
             
