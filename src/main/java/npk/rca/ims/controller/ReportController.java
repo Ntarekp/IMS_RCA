@@ -26,6 +26,7 @@ public class ReportController {
 
     /**
      * GET /api/reports/balance
+     * Get JSON data for balance
      */
     @GetMapping("/balance")
     public ResponseEntity<List<StockBalanceDTO>> getBalanceReport() {
@@ -35,6 +36,7 @@ public class ReportController {
 
     /**
      * GET /api/reports/low-stock
+     * Get JSON data for low stock
      */
     @GetMapping("/low-stock")
     public ResponseEntity<List<StockBalanceDTO>> getLowStockReport() {
@@ -77,6 +79,78 @@ public class ReportController {
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=transaction_report.xlsx")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(excelContent);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * GET /api/reports/export/balance/pdf
+     * Export balance report as PDF
+     */
+    @GetMapping("/export/balance/pdf")
+    public ResponseEntity<byte[]> exportBalancePdf() {
+        try {
+            byte[] pdfContent = reportService.generateBalanceReportPdf();
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=stock_balance_report.pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfContent);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * GET /api/reports/export/balance/excel
+     * Export balance report as Excel
+     */
+    @GetMapping("/export/balance/excel")
+    public ResponseEntity<byte[]> exportBalanceExcel() {
+        try {
+            byte[] excelContent = reportService.generateBalanceReportExcel();
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=stock_balance_report.xlsx")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(excelContent);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * GET /api/reports/export/low-stock/pdf
+     * Export low stock report as PDF
+     */
+    @GetMapping("/export/low-stock/pdf")
+    public ResponseEntity<byte[]> exportLowStockPdf() {
+        try {
+            byte[] pdfContent = reportService.generateLowStockReportPdf();
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=low_stock_report.pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfContent);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * GET /api/reports/export/low-stock/excel
+     * Export low stock report as Excel
+     */
+    @GetMapping("/export/low-stock/excel")
+    public ResponseEntity<byte[]> exportLowStockExcel() {
+        try {
+            byte[] excelContent = reportService.generateLowStockReportExcel();
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=low_stock_report.xlsx")
                     .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                     .body(excelContent);
         } catch (Exception e) {
