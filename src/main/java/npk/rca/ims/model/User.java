@@ -60,6 +60,12 @@ public class User {
     @Column(nullable = false)
     private boolean twoFactorAuth = false;
 
+    @Column(length = 20)
+    private String theme = "LIGHT";
+
+    @Column(length = 10)
+    private String language = "en";
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

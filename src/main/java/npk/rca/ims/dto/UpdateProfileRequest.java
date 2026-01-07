@@ -22,4 +22,6 @@ public class UpdateProfileRequest {
     private Boolean emailNotifications;
     private Boolean smsNotifications;
     private Boolean twoFactorAuth;
+    private String theme;
+    private String language;
 }

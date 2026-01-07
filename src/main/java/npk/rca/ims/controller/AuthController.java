@@ -119,6 +119,8 @@ public class AuthController {
             response.put("emailNotifications", user.isEmailNotifications());
             response.put("smsNotifications", user.isSmsNotifications());
             response.put("twoFactorAuth", user.isTwoFactorAuth());
+            response.put("theme", user.getTheme());
+            response.put("language", user.getLanguage());
             
             return ResponseEntity.ok(response);
             
@@ -153,7 +155,9 @@ public class AuthController {
                 request.getDepartment(),
                 request.getEmailNotifications(),
                 request.getSmsNotifications(),
-                request.getTwoFactorAuth()
+                request.getTwoFactorAuth(),
+                request.getTheme(),
+                request.getLanguage()
             );
             
             Map<String, Object> response = new HashMap<>();
@@ -168,6 +172,8 @@ public class AuthController {
             response.put("emailNotifications", updatedUser.isEmailNotifications());
             response.put("smsNotifications", updatedUser.isSmsNotifications());
             response.put("twoFactorAuth", updatedUser.isTwoFactorAuth());
+            response.put("theme", updatedUser.getTheme());
+            response.put("language", updatedUser.getLanguage());
             
             return ResponseEntity.ok(response);
             

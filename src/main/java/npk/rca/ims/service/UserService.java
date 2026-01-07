@@ -106,7 +106,9 @@ public class UserService {
             String department,
             Boolean emailNotifications,
             Boolean smsNotifications,
-            Boolean twoFactorAuth
+            Boolean twoFactorAuth,
+            String theme,
+            String language
     ) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
@@ -126,6 +128,8 @@ public class UserService {
         if (emailNotifications != null) user.setEmailNotifications(emailNotifications);
         if (smsNotifications != null) user.setSmsNotifications(smsNotifications);
         if (twoFactorAuth != null) user.setTwoFactorAuth(twoFactorAuth);
+        if (theme != null) user.setTheme(theme);
+        if (language != null) user.setLanguage(language);
         
         return userRepository.save(user);
     }
