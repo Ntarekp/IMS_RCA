@@ -1,8 +1,10 @@
 package npk.rca.ims.controller;
 
 import lombok.RequiredArgsConstructor;
+import npk.rca.ims.dto.AnalyticsSummaryDTO;
 import npk.rca.ims.dto.StockMetricsDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
+import npk.rca.ims.service.AnalyticsService;
 import npk.rca.ims.service.StockService;
 import npk.rca.ims.service.StockTransactionService;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,7 @@ public class DashboardController {
 
     private final StockService stockService;
     private final StockTransactionService transactionService;
+    private final AnalyticsService analyticsService;
 
     /**
      * GET /api/dashboard/metrics
@@ -44,49 +47,22 @@ public class DashboardController {
     public ResponseEntity<List<Map<String, Object>>> getChartData(
             @RequestParam(required = false) Integer year) {
         
-        if (year == null) {
-            year = LocalDate.now().getYear();
-        }
+        // Use AnalyticsService to get the robust monthly trends data
+        // This ensures consistency with the Analytics tab
+        AnalyticsSummaryDTO analyticsSummary = analyticsService.getAnalyticsSummary();
         
-        LocalDate startDate = LocalDate.of(year, 1, 1);
-        LocalDate endDate = LocalDate.of(year, 12, 31);
-        
-        List<StockTransactionDTO> transactions = transactionService.getTransactionsByDateRange(startDate, endDate);
-        
-        // Group by month and calculate IN/OUT totals
-        Map<Integer, Map<String, Integer>> monthlyData = new HashMap<>();
-        
-        // Initialize all months
-        for (int month = 1; month <= 12; month++) {
-            monthlyData.put(month, new HashMap<>());
-            monthlyData.get(month).put("in", 0);
-            monthlyData.get(month).put("out", 0);
-        }
-        
-        // Aggregate transactions by month
-        for (StockTransactionDTO tx : transactions) {
-            int month = tx.getTransactionDate().getMonthValue();
-            Map<String, Integer> monthData = monthlyData.get(month);
-            
-            if (tx.getTransactionType().toString().equals("IN")) {
-                monthData.put("in", monthData.get("in") + tx.getQuantity());
-            } else {
-                monthData.put("out", monthData.get("out") + tx.getQuantity());
-            }
-        }
-        
-        // Convert to response format
-        String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-        List<Map<String, Object>> chartData = monthlyData.entrySet().stream()
-                .map(entry -> {
+        // Map the MonthlyTrendDTO list to the format expected by the frontend dashboard chart
+        List<Map<String, Object>> chartData = analyticsSummary.getMonthlyTrends().stream()
+                .map(trend -> {
                     Map<String, Object> monthData = new HashMap<>();
-                    monthData.put("name", monthNames[entry.getKey() - 1]);
-                    monthData.put("in", entry.getValue().get("in"));
-                    monthData.put("out", entry.getValue().get("out"));
+                    monthData.put("name", trend.getMonth());
+                    monthData.put("in", trend.getStockIn());
+                    monthData.put("out", trend.getConsumed()); // Map 'consumed' to 'out' for dashboard compatibility
+                    monthData.put("damaged", trend.getLoss()); // Add 'damaged' field
                     return monthData;
                 })
                 .collect(Collectors.toList());
-        
+
         return ResponseEntity.ok(chartData);
     }
 
