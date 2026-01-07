@@ -33,7 +33,7 @@ public class EmailService {
             String resetLink = "http://localhost:3000/reset-password?token=" + token;
             
             // Public URL for RCA Logo (using the one from GitHub as a reliable placeholder)
-            String logoUrl = "https://raw.githubusercontent.com/Rwanda-Coding-Academy/rca-brand/master/logo.png";
+            String logoUrl = "https://raw.githubusercontent.com/Ntarekp/RCA_IMS_frontend/main/Rca-stock-management/public/rca-logo.png\n";
             
             String content = String.format("""
                 <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 20px; max-width: 600px; margin: 0 auto; background-color: #f1f5f9;">
