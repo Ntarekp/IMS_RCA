@@ -13,6 +13,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ClassPathResource;
@@ -39,9 +40,9 @@ public class ReportService {
     private static final String DATETIME_FORMAT = "dd-MM-yyyy HH:mm";
     private static final String DEFAULT_UNIT = "Kg";
     private static final String PLACEHOLDER = "-";
+    private static final float LOGO_WIDTH = 500f; // 500px width
 
     private final StockTransactionService transactionService;
-    // private final StockBalanceService balanceService; // Removed as it's not defined, using transactionService
 
     // ============ TRANSACTION REPORTS ============
 
@@ -271,14 +272,16 @@ public class ReportService {
 
             Sheet sheet = workbook.createSheet("Transactions");
 
-            addExcelHeaderImage(workbook, sheet);
-            addExcelTitle(workbook, sheet, reportTitle, 4);
+            // Add large header image - returns the row number where content should start
+            int startRow = addExcelHeaderImage(workbook, sheet);
+
+            addExcelTitle(workbook, sheet, reportTitle, startRow);
 
             if (startDate != null && endDate != null) {
-                addExcelDateRange(workbook, sheet, startDate, endDate, 5);
+                addExcelDateRange(workbook, sheet, startDate, endDate, startRow + 1);
             }
 
-            int headerRow = (startDate != null && endDate != null) ? 6 : 5;
+            int headerRow = (startDate != null && endDate != null) ? startRow + 2 : startRow + 1;
             createTransactionExcelHeader(workbook, sheet, headerRow);
 
             if (transactions.isEmpty()) {
@@ -374,10 +377,10 @@ public class ReportService {
         for (StockBalanceDTO balance : balances) {
             addCell(table, balance.getItemName());
             addCell(table, DEFAULT_UNIT);
-            addCell(table, String.valueOf(balance.getCurrentBalance())); // Fixed: getCurrentStock() -> getCurrentBalance()
+            addCell(table, String.valueOf(balance.getCurrentBalance()));
             addCell(table, String.valueOf(balance.getMinimumStock()));
 
-            String status = balance.getCurrentBalance() <= balance.getMinimumStock() ? "LOW" : "OK"; // Fixed: getCurrentStock() -> getCurrentBalance()
+            String status = balance.getCurrentBalance() <= balance.getMinimumStock() ? "LOW" : "OK";
             PdfPCell statusCell = new PdfPCell(new Phrase(status, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9)));
             statusCell.setPadding(4);
             statusCell.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -396,15 +399,15 @@ public class ReportService {
 
             Sheet sheet = workbook.createSheet("Stock Balance");
 
-            addExcelHeaderImage(workbook, sheet);
-            addExcelTitle(workbook, sheet, "Current Stock Balance Report", 4);
+            int startRow = addExcelHeaderImage(workbook, sheet);
+            addExcelTitle(workbook, sheet, "Current Stock Balance Report", startRow);
 
-            createBalanceExcelHeader(workbook, sheet, 5);
+            createBalanceExcelHeader(workbook, sheet, startRow + 1);
 
             if (balances.isEmpty()) {
-                addExcelNoDataMessage(workbook, sheet, 6);
+                addExcelNoDataMessage(workbook, sheet, startRow + 2);
             } else {
-                populateBalanceExcelData(workbook, sheet, balances, 6);
+                populateBalanceExcelData(workbook, sheet, balances, startRow + 2);
             }
 
             autoSizeColumns(sheet, 5);
@@ -443,10 +446,10 @@ public class ReportService {
 
             row.createCell(0).setCellValue(balance.getItemName());
             row.createCell(1).setCellValue(DEFAULT_UNIT);
-            row.createCell(2).setCellValue(balance.getCurrentBalance()); // Fixed: getCurrentStock() -> getCurrentBalance()
+            row.createCell(2).setCellValue(balance.getCurrentBalance());
             row.createCell(3).setCellValue(balance.getMinimumStock());
 
-            String status = balance.getCurrentBalance() <= balance.getMinimumStock() ? "LOW" : "OK"; // Fixed: getCurrentStock() -> getCurrentBalance()
+            String status = balance.getCurrentBalance() <= balance.getMinimumStock() ? "LOW" : "OK";
             Cell statusCell = row.createCell(4);
             statusCell.setCellValue(status);
             statusCell.setCellStyle(status.equals("LOW") ? lowStockStyle : okStyle);
@@ -491,19 +494,39 @@ public class ReportService {
     }
 
     private byte[] createLowStockExcelReport(List<StockBalanceDTO> lowStockItems) throws IOException {
-        return createBalanceExcelReport(lowStockItems); // Reuse balance report structure
+        return createBalanceExcelReport(lowStockItems);
     }
 
     // ============ COMMON PDF HELPERS ============
 
+    /**
+     * Add header image to PDF document with 500px width and auto height
+     */
     private void addHeaderImage(Document document) {
         try {
             ClassPathResource imgFile = new ClassPathResource(HEADER_IMAGE_PATH);
             if (imgFile.exists()) {
                 Image image = Image.getInstance(imgFile.getURL());
-                image.scaleToFit(500, 100);
+
+                // Get original dimensions
+                float originalWidth = image.getWidth();
+                float originalHeight = image.getHeight();
+
+                // Calculate aspect ratio and set width to 500px
+                float aspectRatio = originalHeight / originalWidth;
+                float newWidth = LOGO_WIDTH;
+                float newHeight = newWidth * aspectRatio;
+
+                // Scale to exact dimensions
+                image.scaleAbsolute(newWidth, newHeight);
                 image.setAlignment(Element.ALIGN_CENTER);
+
                 document.add(image);
+
+                // Add spacing after logo
+                document.add(new Paragraph(" ")); // Extra space
+            } else {
+                log.warn("Header image not found at path: {}", HEADER_IMAGE_PATH);
             }
         } catch (Exception e) {
             log.warn("Failed to add header image to PDF", e);
@@ -575,7 +598,11 @@ public class ReportService {
 
     // ============ COMMON EXCEL HELPERS ============
 
-    private void addExcelHeaderImage(Workbook workbook, Sheet sheet) {
+    /**
+     * Add header image to Excel sheet with 500px width and auto height
+     * Returns the row number where content should start after the image
+     */
+    private int addExcelHeaderImage(Workbook workbook, Sheet sheet) {
         try {
             ClassPathResource imgFile = new ClassPathResource(HEADER_IMAGE_PATH);
             if (imgFile.exists()) {
@@ -586,17 +613,36 @@ public class ReportService {
                     CreationHelper helper = workbook.getCreationHelper();
                     Drawing<?> drawing = sheet.createDrawingPatriarch();
                     ClientAnchor anchor = helper.createClientAnchor();
+
+                    // Position: Start at A1
                     anchor.setCol1(0);
                     anchor.setRow1(0);
+
+                    // End position: Span across columns to achieve ~500px width
+                    // Assuming standard column width, spanning 10 columns ≈ 500px
                     anchor.setCol2(10);
-                    anchor.setRow2(4);
+
+
+                    anchor.setRow2(12);
 
                     Picture pict = drawing.createPicture(anchor, pictureIdx);
-                    pict.resize(1.0, 1.0);
+
+                    // Don't call resize() to maintain our custom sizing
+                    // pict.resize(); // REMOVED - this would override our anchor settings
+
+                    // Merge cells in the logo area for cleaner look
+                    sheet.addMergedRegion(new CellRangeAddress(0, 7, 0, 9));
+
+                    // Return the row where content should start (after logo)
+                    return 9; // Start content at row 9 (after rows 0-8)
                 }
+            } else {
+                log.warn("Header image not found at path: {}", HEADER_IMAGE_PATH);
+                return 0; // Start at top if no image
             }
         } catch (Exception e) {
             log.warn("Failed to add header image to Excel", e);
+            return 0; // Start at top if error
         }
     }
 
@@ -612,6 +658,9 @@ public class ReportService {
         titleFont.setFontHeightInPoints((short) 14);
         titleStyle.setFont(titleFont);
         titleCell.setCellStyle(titleStyle);
+
+        // Make title row taller for better visibility
+        titleRow.setHeightInPoints(20);
     }
 
     private void addExcelDateRange(Workbook workbook, Sheet sheet, LocalDate startDate, LocalDate endDate, int rowNum) {
