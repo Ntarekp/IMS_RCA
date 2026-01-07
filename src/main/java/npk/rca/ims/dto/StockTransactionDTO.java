@@ -25,6 +25,9 @@ public class StockTransactionDTO {
 
     private String itemName;
 
+    // Unit of measurement (e.g., "Kg", "Pcs", "Liters", "Boxes")
+    private String unit;
+
     @NotNull(message = "Transaction type is required")
     private TransactionType transactionType;
 
