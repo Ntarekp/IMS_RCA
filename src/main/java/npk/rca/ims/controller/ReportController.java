@@ -3,12 +3,14 @@ package npk.rca.ims.controller;
 import lombok.RequiredArgsConstructor;
 import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.service.ReportService;
-import npk.rca.ims.service.StockTransactionService;
+import npk.rca.ims.service.StockBalanceService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -19,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReportController {
 
-    private final StockTransactionService transactionService;
+    private final StockBalanceService balanceService;
     private final ReportService reportService;
 
     /**
@@ -27,7 +29,7 @@ public class ReportController {
      */
     @GetMapping("/balance")
     public ResponseEntity<List<StockBalanceDTO>> getBalanceReport() {
-        List<StockBalanceDTO> report = transactionService.generateBalanceReport();
+        List<StockBalanceDTO> report = balanceService.getAllBalances();
         return ResponseEntity.ok(report);
     }
 
@@ -36,7 +38,7 @@ public class ReportController {
      */
     @GetMapping("/low-stock")
     public ResponseEntity<List<StockBalanceDTO>> getLowStockReport() {
-        List<StockBalanceDTO> report = transactionService.getLowStockItems();
+        List<StockBalanceDTO> report = balanceService.getLowStockItems();
         return ResponseEntity.ok(report);
     }
 
@@ -45,9 +47,12 @@ public class ReportController {
      * Export full transaction history as PDF
      */
     @GetMapping("/export/pdf")
-    public ResponseEntity<byte[]> exportPdf() {
+    public ResponseEntity<byte[]> exportPdf(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long itemId) {
         try {
-            byte[] pdfContent = reportService.generateTransactionReportPdf();
+            byte[] pdfContent = reportService.generateTransactionReportPdf(startDate, endDate, itemId);
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=transaction_report.pdf")
@@ -63,9 +68,12 @@ public class ReportController {
      * Export full transaction history as Excel
      */
     @GetMapping("/export/excel")
-    public ResponseEntity<byte[]> exportExcel() {
+    public ResponseEntity<byte[]> exportExcel(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long itemId) {
         try {
-            byte[] excelContent = reportService.generateTransactionReportExcel();
+            byte[] excelContent = reportService.generateTransactionReportExcel(startDate, endDate, itemId);
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=transaction_report.xlsx")
