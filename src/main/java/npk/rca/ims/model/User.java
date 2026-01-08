@@ -52,6 +52,12 @@ public class User {
 
     @Column(length = 100)
     private String location;
+    
+    @Column(columnDefinition = "TEXT")
+    private String avatarUrl;
+    
+    @Column(columnDefinition = "TEXT")
+    private String coverUrl;
 
     // Settings fields
     @Column(nullable = false)

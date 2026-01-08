@@ -102,6 +102,8 @@ public class EmailService {
 
         } catch (MessagingException e) {
             log.error("Failed to send password reset email to {}", to, e);
+        } catch (Exception e) {
+            log.error("Unexpected error sending password reset email to {}", to, e);
         }
     }
 
@@ -183,6 +185,8 @@ public class EmailService {
 
         } catch (MessagingException e) {
             log.error("Failed to send welcome email to {}", to, e);
+        } catch (Exception e) {
+            log.error("Unexpected error sending welcome email to {}", to, e);
         }
     }
 }

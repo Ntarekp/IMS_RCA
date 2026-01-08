@@ -80,10 +80,17 @@ public class AdminController {
             // Send welcome email with the raw password
             // Use systemEmail if available, otherwise fallback to email
             String emailToSend = savedUser.getSystemEmail() != null ? savedUser.getSystemEmail() : savedUser.getEmail();
-            emailService.sendWelcomeEmail(emailToSend, password);
+
+            try {
+                emailService.sendWelcomeEmail(emailToSend, password);
+            } catch (Exception e) {
+                log.error("Failed to send welcome email to user: {}", emailToSend, e);
+                // Don't fail the request if email sending fails, but log it
+            }
             
             return ResponseEntity.ok(convertToDTO(savedUser));
         } catch (Exception e) {
+            log.error("Error creating user", e);
             return ResponseEntity.internalServerError().body(Map.of("message", "Error creating user: " + e.getMessage()));
         }
     }
@@ -208,6 +215,8 @@ public class AdminController {
                 user.getPhone(),
                 user.getDepartment(),
                 user.getLocation(),
+                user.getAvatarUrl(),
+                user.getCoverUrl(),
                 user.getCreatedAt()
         );
     }
