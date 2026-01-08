@@ -1,7 +1,10 @@
 package npk.rca.ims.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import npk.rca.ims.dto.CreateUserRequest;
+import npk.rca.ims.dto.UserDTO;
 import npk.rca.ims.model.User;
 import npk.rca.ims.repository.UserRepository;
 import npk.rca.ims.service.UserService;
@@ -10,7 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * AdminController - Administrative endpoints
@@ -27,9 +32,62 @@ public class AdminController {
     private final UserService userService;
 
     /**
+     * GET /api/admin/users
+     * List all users
+     */
+    @GetMapping("/users")
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        List<UserDTO> userDTOs = users.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(userDTOs);
+    }
+
+    /**
+     * POST /api/admin/users
+     * Create a new user
+     */
+    @PostMapping("/users")
+    public ResponseEntity<?> createUser(@Valid @RequestBody CreateUserRequest request) {
+        try {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Email already exists"));
+            }
+
+            User user = new User();
+            user.setEmail(request.getEmail());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setRole(request.getRole());
+            user.setName(request.getName());
+            user.setPhone(request.getPhone());
+            user.setDepartment(request.getDepartment());
+            user.setLocation(request.getLocation());
+            user.setEnabled(true);
+
+            User savedUser = userRepository.save(user);
+            return ResponseEntity.ok(convertToDTO(savedUser));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Error creating user: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * DELETE /api/admin/users/{id}
+     * Delete a user
+     */
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        if (!userRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        userRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
+    }
+
+    /**
      * POST /api/admin/reset-password
      * Reset password for default admin user
-     * This is a utility endpoint for fixing password issues
      */
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetDefaultPassword() {
@@ -40,11 +98,9 @@ public class AdminController {
             User user = userRepository.findByEmail(defaultEmail).orElse(null);
             
             if (user == null) {
-                // Create user if doesn't exist
                 user = userService.createUser(defaultEmail, defaultPassword, "ADMIN");
                 log.info("Created default user: {}", defaultEmail);
             } else {
-                // Update password
                 user.setPassword(passwordEncoder.encode(defaultPassword));
                 user.setEnabled(true);
                 user.setRole("ADMIN");
@@ -106,5 +162,19 @@ public class AdminController {
             response.put("message", "Error verifying user: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
+    }
+
+    private UserDTO convertToDTO(User user) {
+        return new UserDTO(
+                user.getId(),
+                user.getEmail(),
+                user.getRole(),
+                user.isEnabled(),
+                user.getName(),
+                user.getPhone(),
+                user.getDepartment(),
+                user.getLocation(),
+                user.getCreatedAt()
+        );
     }
 }
