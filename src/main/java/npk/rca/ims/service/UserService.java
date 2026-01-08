@@ -80,6 +80,8 @@ public class UserService {
         
         User user = new User();
         user.setEmail(email);
+        // Set system email to the initial email
+        user.setSystemEmail(email);
         user.setPassword(passwordEncoder.encode(password)); // Encrypt password
         user.setRole(role != null ? role : "USER");
         user.setEnabled(true);
@@ -118,6 +120,10 @@ public class UserService {
         if (newEmail != null && !newEmail.equals(email)) {
             if (userRepository.existsByEmail(newEmail)) {
                 throw new IllegalArgumentException("Email " + newEmail + " is already in use");
+            }
+            // If systemEmail is null (legacy users), set it to the old email before changing
+            if (user.getSystemEmail() == null) {
+                user.setSystemEmail(user.getEmail());
             }
             user.setEmail(newEmail.trim().toLowerCase());
         }

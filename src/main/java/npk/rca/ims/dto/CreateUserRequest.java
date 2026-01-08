@@ -14,7 +14,6 @@ public class CreateUserRequest {
     @Email
     private String email;
     
-    @NotBlank
     private String password;
     
     private String role = "USER";

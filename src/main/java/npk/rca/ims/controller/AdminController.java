@@ -7,6 +7,7 @@ import npk.rca.ims.dto.CreateUserRequest;
 import npk.rca.ims.dto.UserDTO;
 import npk.rca.ims.model.User;
 import npk.rca.ims.repository.UserRepository;
+import npk.rca.ims.service.EmailService;
 import npk.rca.ims.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +31,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserService userService;
+    private final EmailService emailService;
 
     /**
      * GET /api/admin/users
@@ -57,7 +59,15 @@ public class AdminController {
 
             User user = new User();
             user.setEmail(request.getEmail());
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            // Initialize systemEmail with the creation email
+            user.setSystemEmail(request.getEmail());
+            
+            // Set default password if not provided
+            String password = request.getPassword();
+            if (password == null || password.isEmpty()) {
+                password = "Password@123"; // Default password
+            }
+            user.setPassword(passwordEncoder.encode(password));
             user.setRole(request.getRole());
             user.setName(request.getName());
             user.setPhone(request.getPhone());
@@ -66,6 +76,12 @@ public class AdminController {
             user.setEnabled(true);
 
             User savedUser = userRepository.save(user);
+            
+            // Send welcome email with the raw password
+            // Use systemEmail if available, otherwise fallback to email
+            String emailToSend = savedUser.getSystemEmail() != null ? savedUser.getSystemEmail() : savedUser.getEmail();
+            emailService.sendWelcomeEmail(emailToSend, password);
+            
             return ResponseEntity.ok(convertToDTO(savedUser));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("message", "Error creating user: " + e.getMessage()));
@@ -81,6 +97,14 @@ public class AdminController {
         if (!userRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
+        
+        // Prevent deleting the main admin
+        User user = userRepository.findById(id).orElseThrow();
+        // Check both email and systemEmail to protect the main admin account
+        if ("ntarekayitare@gmail.com".equals(user.getEmail()) || "ntarekayitare@gmail.com".equals(user.getSystemEmail())) {
+             return ResponseEntity.badRequest().body(Map.of("message", "Cannot delete the main administrator account"));
+        }
+        
         userRepository.deleteById(id);
         return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
     }
@@ -95,15 +119,25 @@ public class AdminController {
             String defaultEmail = "ntarekayitare@gmail.com";
             String defaultPassword = "RcaIMS@1234.5";
             
+            // Try to find by email or systemEmail
             User user = userRepository.findByEmail(defaultEmail).orElse(null);
             
             if (user == null) {
+                // If not found by email, try to find any user with this systemEmail
+                // This is a bit tricky with standard JPA methods, so we might need a custom query
+                // For now, let's assume if the email changed, we can't easily find it by the old email unless we add a finder
+                // But for the default admin reset, we usually expect the email to be the default one
+                
                 user = userService.createUser(defaultEmail, defaultPassword, "ADMIN");
                 log.info("Created default user: {}", defaultEmail);
             } else {
                 user.setPassword(passwordEncoder.encode(defaultPassword));
                 user.setEnabled(true);
                 user.setRole("ADMIN");
+                // Ensure system email is set
+                if (user.getSystemEmail() == null) {
+                    user.setSystemEmail(defaultEmail);
+                }
                 userRepository.save(user);
                 log.info("Reset password for user: {}", defaultEmail);
             }

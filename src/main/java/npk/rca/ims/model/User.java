@@ -68,6 +68,11 @@ public class User {
 
     @Column(length = 10)
     private String language = "en";
+    
+    // Field to store the original email used for system notifications (like password resets)
+    // This allows the user to change their login/display email without breaking system emails
+    @Column(length = 100)
+    private String systemEmail;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
