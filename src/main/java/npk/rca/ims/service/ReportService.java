@@ -271,13 +271,28 @@ public class ReportService {
 
     private void addTransactionPdfDataRow(PdfPTable table, StockTransactionDTO tx, DateTimeFormatter formatter) {
         addCell(table, tx.getTransactionDate().format(formatter));
-        addCell(table, Optional.ofNullable(tx.getReferenceNumber()).orElse(PLACEHOLDER));
+        // Use a default value if reference number is null or empty
+        String reference = (tx.getReferenceNumber() != null && !tx.getReferenceNumber().isEmpty()) 
+                ? tx.getReferenceNumber() 
+                : "TX-" + tx.getId();
+        addCell(table, reference);
         addCell(table, tx.getItemName());
         addCell(table, DEFAULT_UNIT);
         addCell(table, tx.getTransactionType().toString());
         addCell(table, String.valueOf(tx.getQuantity()));
         addCell(table, String.valueOf(tx.getBalanceAfter()));
-        addCell(table, Optional.ofNullable(tx.getSupplierName()).orElse(PLACEHOLDER));
+        
+        // Logic for Source/Issued To
+        String sourceOrIssuedTo = PLACEHOLDER;
+        if (tx.getTransactionType() == TransactionType.IN) {
+            sourceOrIssuedTo = Optional.ofNullable(tx.getSupplierName()).orElse("Internal Adjustment");
+        } else if (tx.getTransactionType() == TransactionType.OUT) {
+            // For OUT transactions, we might want to show department or recipient if available in notes
+            // For now, let's use a generic "Issued" or extract from notes if structured
+            sourceOrIssuedTo = "Issued Out"; 
+        }
+        addCell(table, sourceOrIssuedTo);
+        
         addCell(table, Optional.ofNullable(tx.getNotes()).orElse(PLACEHOLDER));
         addCell(table, Optional.ofNullable(tx.getRecordedBy()).orElse(PLACEHOLDER));
     }
@@ -343,13 +358,26 @@ public class ReportService {
             Row row = sheet.createRow(rowNum++);
 
             row.createCell(0).setCellValue(tx.getTransactionDate().format(formatter));
-            row.createCell(1).setCellValue(Optional.ofNullable(tx.getReferenceNumber()).orElse(PLACEHOLDER));
+            
+            String reference = (tx.getReferenceNumber() != null && !tx.getReferenceNumber().isEmpty()) 
+                    ? tx.getReferenceNumber() 
+                    : "TX-" + tx.getId();
+            row.createCell(1).setCellValue(reference);
+            
             row.createCell(2).setCellValue(tx.getItemName());
             row.createCell(3).setCellValue(DEFAULT_UNIT);
             row.createCell(4).setCellValue(tx.getTransactionType().toString());
             row.createCell(5).setCellValue(tx.getQuantity());
             row.createCell(6).setCellValue(tx.getBalanceAfter());
-            row.createCell(7).setCellValue(Optional.ofNullable(tx.getSupplierName()).orElse(PLACEHOLDER));
+            
+            String sourceOrIssuedTo = PLACEHOLDER;
+            if (tx.getTransactionType() == TransactionType.IN) {
+                sourceOrIssuedTo = Optional.ofNullable(tx.getSupplierName()).orElse("Internal Adjustment");
+            } else if (tx.getTransactionType() == TransactionType.OUT) {
+                sourceOrIssuedTo = "Issued Out"; 
+            }
+            row.createCell(7).setCellValue(sourceOrIssuedTo);
+
             row.createCell(8).setCellValue(Optional.ofNullable(tx.getNotes()).orElse(PLACEHOLDER));
             row.createCell(9).setCellValue(Optional.ofNullable(tx.getRecordedBy()).orElse(PLACEHOLDER));
         }
