@@ -8,6 +8,7 @@ import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.StockTransactionRepository;
 import npk.rca.ims.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -65,6 +66,7 @@ class ItemServiceTest {
     }
 
     @Test
+    @DisplayName("Should return all items with calculated balance")
     void getAllItems_ShouldReturnListOfItems() {
         when(itemRepository.findAll()).thenReturn(Arrays.asList(testItem));
         when(stockTransactionRepository.getTotalInByItemId(1L)).thenReturn(100);
@@ -79,6 +81,7 @@ class ItemServiceTest {
     }
 
     @Test
+    @DisplayName("Should return item by ID when it exists")
     void getItemById_ShouldReturnItem_WhenItemExists() {
         when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
         when(stockTransactionRepository.getTotalInByItemId(1L)).thenReturn(100);
@@ -92,6 +95,7 @@ class ItemServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw ResourceNotFoundException when item ID does not exist")
     void getItemById_ShouldThrowException_WhenItemNotFound() {
         when(itemRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -99,8 +103,11 @@ class ItemServiceTest {
     }
 
     @Test
+    @DisplayName("Should create new item successfully")
     void createItem_ShouldReturnCreatedItem() {
         when(itemRepository.save(any(Item.class))).thenReturn(testItem);
+        // For a new item, balance calculation might be called if convertToDTO is used on the saved item
+        // Usually new items have 0 transactions
         when(stockTransactionRepository.getTotalInByItemId(1L)).thenReturn(0);
         when(stockTransactionRepository.getTotalOutByItemId(1L)).thenReturn(0);
 
@@ -108,9 +115,11 @@ class ItemServiceTest {
 
         assertNotNull(result);
         assertEquals("Test Item", result.getName());
+        assertEquals(0, result.getCurrentBalance());
     }
 
     @Test
+    @DisplayName("Should update existing item successfully")
     void updateItem_ShouldReturnUpdatedItem_WhenItemExists() {
         when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
         when(itemRepository.save(any(Item.class))).thenReturn(testItem);
@@ -125,16 +134,19 @@ class ItemServiceTest {
     }
 
     @Test
+    @DisplayName("Should delete item and its transactions when item exists")
     void deleteItem_ShouldDeleteItem_WhenItemExists() {
         when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
         when(stockTransactionRepository.findByItemId(1L)).thenReturn(Collections.emptyList());
 
         itemService.deleteItem(1L);
 
+        verify(stockTransactionRepository).deleteAll(anyList());
         verify(itemRepository, times(1)).delete(testItem);
     }
 
     @Test
+    @DisplayName("Should delete item with password verification")
     void deleteItemWithPasswordVerification_ShouldDeleteItem_WhenPasswordIsValid() {
         User user = new User();
         user.setEmail("admin@example.com");
@@ -151,6 +163,7 @@ class ItemServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when password verification fails")
     void deleteItemWithPasswordVerification_ShouldThrowException_WhenPasswordIsInvalid() {
         User user = new User();
         user.setEmail("admin@example.com");
@@ -166,9 +179,17 @@ class ItemServiceTest {
     }
 
     @Test
+    @DisplayName("Should record damaged quantity correctly")
     void recordDamagedQuantity_ShouldUpdateDamagedQuantity() {
+        // Initial damaged quantity is 0
         when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
-        when(itemRepository.save(any(Item.class))).thenReturn(testItem);
+
+        // Mock save to return item with updated damaged quantity
+        Item updatedItem = new Item();
+        updatedItem.setId(1L);
+        updatedItem.setDamagedQuantity(5);
+        when(itemRepository.save(any(Item.class))).thenReturn(updatedItem);
+
         when(stockTransactionRepository.getTotalInByItemId(1L)).thenReturn(100);
         when(stockTransactionRepository.getTotalOutByItemId(1L)).thenReturn(50);
 
@@ -178,6 +199,7 @@ class ItemServiceTest {
     }
 
     @Test
+    @DisplayName("Should filter items by name")
     void getFilteredItems_ShouldFilterByName() {
         when(itemRepository.findAll()).thenReturn(Arrays.asList(testItem));
         when(stockTransactionRepository.getTotalInByItemId(1L)).thenReturn(100);
@@ -190,6 +212,7 @@ class ItemServiceTest {
     }
     
     @Test
+    @DisplayName("Should filter items by status 'Mucye' (Low Stock)")
     void getFilteredItems_ShouldFilterByStatus_LowStock() {
         testItem.setMinimumStock(60); // Min stock > Current Balance (50)
         
@@ -200,5 +223,44 @@ class ItemServiceTest {
         List<ItemDTO> result = itemService.getFilteredItems(null, "Mucye", null, "name,asc");
 
         assertEquals(1, result.size());
+    }
+
+    @Test
+    @DisplayName("Should filter items by status 'Birahagije' (Adequate Stock)")
+    void getFilteredItems_ShouldFilterByStatus_AdequateStock() {
+        testItem.setMinimumStock(10); // Min stock < Current Balance (50)
+
+        when(itemRepository.findAll()).thenReturn(Arrays.asList(testItem));
+        when(stockTransactionRepository.getTotalInByItemId(1L)).thenReturn(100);
+        when(stockTransactionRepository.getTotalOutByItemId(1L)).thenReturn(50);
+
+        List<ItemDTO> result = itemService.getFilteredItems(null, "Birahagije", null, "name,asc");
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    @DisplayName("Should filter items by status 'Byashize' (Out of Stock)")
+    void getFilteredItems_ShouldFilterByStatus_OutOfStock() {
+        // Balance 0
+        when(itemRepository.findAll()).thenReturn(Arrays.asList(testItem));
+        when(stockTransactionRepository.getTotalInByItemId(1L)).thenReturn(50);
+        when(stockTransactionRepository.getTotalOutByItemId(1L)).thenReturn(50);
+
+        List<ItemDTO> result = itemService.getFilteredItems(null, "Byashize", null, "name,asc");
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    @DisplayName("Should calculate current balance correctly")
+    void getCurrentBalance_ShouldReturnCorrectBalance() {
+        when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
+        when(stockTransactionRepository.getTotalInByItemId(1L)).thenReturn(100);
+        when(stockTransactionRepository.getTotalOutByItemId(1L)).thenReturn(30);
+
+        int balance = itemService.getCurrentBalance(1L);
+
+        assertEquals(70, balance);
     }
 }

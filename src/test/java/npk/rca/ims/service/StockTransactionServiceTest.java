@@ -11,6 +11,7 @@ import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.StockTransactionRepository;
 import npk.rca.ims.repository.SupplierRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -79,6 +80,7 @@ class StockTransactionServiceTest {
     }
 
     @Test
+    @DisplayName("Should return all transactions with calculated running balances")
     void getAllTransactions_ShouldReturnTransactionsWithBalances() {
         when(transactionRepository.findAll()).thenReturn(Arrays.asList(testTransactionIn, testTransactionOut));
 
@@ -94,6 +96,7 @@ class StockTransactionServiceTest {
     }
 
     @Test
+    @DisplayName("Should return transactions for specific item when item exists")
     void getTransactionsByItemId_ShouldReturnTransactions_WhenItemExists() {
         when(itemRepository.existsById(1L)).thenReturn(true);
         when(transactionRepository.findByItemId(1L)).thenReturn(Arrays.asList(testTransactionIn));
@@ -105,6 +108,7 @@ class StockTransactionServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw ResourceNotFoundException when getting transactions for non-existent item")
     void getTransactionsByItemId_ShouldThrowException_WhenItemNotFound() {
         when(itemRepository.existsById(1L)).thenReturn(false);
 
@@ -113,6 +117,7 @@ class StockTransactionServiceTest {
     }
 
     @Test
+    @DisplayName("Should record IN transaction successfully")
     void recordTransaction_ShouldRecordInTransaction() {
         when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
         when(transactionRepository.save(any(StockTransaction.class))).thenReturn(testTransactionIn);
@@ -126,6 +131,7 @@ class StockTransactionServiceTest {
     }
 
     @Test
+    @DisplayName("Should record OUT transaction when stock is sufficient")
     void recordTransaction_ShouldRecordOutTransaction_WhenStockIsSufficient() {
         testTransactionDTO.setTransactionType(TransactionType.OUT);
         testTransactionDTO.setQuantity(50);
@@ -145,6 +151,7 @@ class StockTransactionServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw IllegalArgumentException when stock is insufficient for OUT transaction")
     void recordTransaction_ShouldThrowException_WhenStockIsInsufficient() {
         testTransactionDTO.setTransactionType(TransactionType.OUT);
         testTransactionDTO.setQuantity(150); // Requesting 150
@@ -161,6 +168,7 @@ class StockTransactionServiceTest {
     }
     
     @Test
+    @DisplayName("Should link supplier to transaction when supplier ID is provided")
     void recordTransaction_ShouldLinkSupplier_WhenSupplierIdProvided() {
         testTransactionDTO.setSupplierId(10L);
         Supplier supplier = new Supplier();
@@ -178,6 +186,7 @@ class StockTransactionServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate balance report for all items")
     void generateBalanceReport_ShouldReturnBalances() {
         when(itemRepository.findAll()).thenReturn(Arrays.asList(testItem));
         when(transactionRepository.getTotalInByItemId(1L)).thenReturn(100);
@@ -192,6 +201,7 @@ class StockTransactionServiceTest {
     }
     
     @Test
+    @DisplayName("Should return only low stock items")
     void getLowStockItems_ShouldReturnOnlyLowStockItems() {
         Item lowStockItem = new Item();
         lowStockItem.setId(2L);

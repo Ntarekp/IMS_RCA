@@ -4,6 +4,7 @@ import npk.rca.ims.exceptions.ResourceNotFoundException;
 import npk.rca.ims.model.User;
 import npk.rca.ims.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -43,6 +44,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should return user when email exists")
     void findByEmail_ShouldReturnUser_WhenUserExists() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
@@ -53,6 +55,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should authenticate user when credentials are valid")
     void authenticate_ShouldReturnUser_WhenCredentialsAreValid() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
@@ -64,6 +67,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should return null when authenticating non-existent user")
     void authenticate_ShouldReturnNull_WhenUserNotFound() {
         when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
 
@@ -73,6 +77,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should return null when authenticating with invalid password")
     void authenticate_ShouldReturnNull_WhenPasswordIsInvalid() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);
@@ -83,6 +88,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should return null when authenticating disabled user")
     void authenticate_ShouldReturnNull_WhenUserIsDisabled() {
         testUser.setEnabled(false);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
@@ -94,6 +100,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should create user when email is unique")
     void createUser_ShouldCreateUser_WhenEmailIsUnique() {
         when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
         when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
@@ -108,6 +115,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when creating user with existing email")
     void createUser_ShouldThrowException_WhenEmailAlreadyExists() {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
 
@@ -116,6 +124,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should update user profile successfully")
     void updateProfile_ShouldUpdateUser_WhenUserExists() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -139,6 +148,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when updating profile of non-existent user")
     void updateProfile_ShouldThrowException_WhenUserNotFound() {
         when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
 
@@ -147,6 +157,7 @@ class UserServiceTest {
     }
     
     @Test
+    @DisplayName("Should change password when current password is correct")
     void changePassword_ShouldUpdatePassword_WhenCurrentPasswordIsCorrect() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("oldPassword", "encodedPassword")).thenReturn(true);
@@ -159,6 +170,7 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when changing password with incorrect current password")
     void changePassword_ShouldThrowException_WhenCurrentPasswordIsIncorrect() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);

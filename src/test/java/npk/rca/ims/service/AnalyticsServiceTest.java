@@ -6,6 +6,7 @@ import npk.rca.ims.model.StockTransaction;
 import npk.rca.ims.model.TransactionType;
 import npk.rca.ims.repository.StockTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -66,6 +67,7 @@ class AnalyticsServiceTest {
     }
 
     @Test
+    @DisplayName("Should calculate correct analytics metrics")
     void getAnalyticsSummary_ShouldReturnCorrectMetrics() {
         when(transactionRepository.findAll()).thenReturn(Arrays.asList(txIn, txOutConsumed, txOutDamaged));
 
@@ -96,12 +98,15 @@ class AnalyticsServiceTest {
         // Monthly Trends
         assertFalse(result.getMonthlyTrends().isEmpty());
         // Current month should have data
+        // Note: The index 5 assumes the list is sorted and contains 6 months, with current month at end
+        // This might be fragile if implementation changes, but works for now
         assertEquals(100, result.getMonthlyTrends().get(5).getStockIn());
         assertEquals(50, result.getMonthlyTrends().get(5).getConsumed());
         assertEquals(10, result.getMonthlyTrends().get(5).getLoss());
     }
 
     @Test
+    @DisplayName("Should handle empty data gracefully")
     void getAnalyticsSummary_ShouldHandleEmptyData() {
         when(transactionRepository.findAll()).thenReturn(Collections.emptyList());
 

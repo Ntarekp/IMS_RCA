@@ -5,6 +5,7 @@ import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.dto.SupplierDTO;
 import npk.rca.ims.model.TransactionType;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -67,6 +68,7 @@ class ReportServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate transaction report PDF successfully")
     void generateTransactionReportPdf_ShouldReturnPdfBytes() {
         when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransaction));
 
@@ -77,6 +79,7 @@ class ReportServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate transaction report Excel successfully")
     void generateTransactionReportExcel_ShouldReturnExcelBytes() {
         when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransaction));
 
@@ -87,6 +90,7 @@ class ReportServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate stock-in report PDF successfully")
     void generateStockInReportPdf_ShouldReturnPdfBytes() {
         when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransaction));
 
@@ -97,6 +101,7 @@ class ReportServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate stock-out report PDF successfully")
     void generateStockOutReportPdf_ShouldReturnPdfBytes() {
         testTransaction.setTransactionType(TransactionType.OUT);
         when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransaction));
@@ -108,6 +113,7 @@ class ReportServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate balance report PDF successfully")
     void generateBalanceReportPdf_ShouldReturnPdfBytes() {
         when(balanceService.getAllBalances()).thenReturn(Arrays.asList(testBalance));
 
@@ -118,6 +124,7 @@ class ReportServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate balance report Excel successfully")
     void generateBalanceReportExcel_ShouldReturnExcelBytes() {
         when(balanceService.getAllBalances()).thenReturn(Arrays.asList(testBalance));
 
@@ -128,6 +135,7 @@ class ReportServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate low stock report PDF successfully")
     void generateLowStockReportPdf_ShouldReturnPdfBytes() {
         testBalance.setIsLowStock(true);
         when(balanceService.getLowStockItems()).thenReturn(Arrays.asList(testBalance));
@@ -139,6 +147,7 @@ class ReportServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate supplier report PDF successfully")
     void generateSupplierReportPdf_ShouldReturnPdfBytes() {
         when(supplierService.getAllActiveSuppliers()).thenReturn(Arrays.asList(testSupplier));
 
@@ -149,6 +158,7 @@ class ReportServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate supplier report Excel successfully")
     void generateSupplierReportExcel_ShouldReturnExcelBytes() {
         when(supplierService.getAllActiveSuppliers()).thenReturn(Arrays.asList(testSupplier));
 
@@ -159,6 +169,7 @@ class ReportServiceTest {
     }
     
     @Test
+    @DisplayName("Should handle empty data gracefully for transaction report")
     void generateTransactionReportPdf_ShouldHandleEmptyData() {
         when(transactionService.getAllTransactions()).thenReturn(Collections.emptyList());
 

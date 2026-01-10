@@ -5,6 +5,7 @@ import npk.rca.ims.exceptions.ResourceNotFoundException;
 import npk.rca.ims.model.Supplier;
 import npk.rca.ims.repository.SupplierRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -56,6 +57,7 @@ class SupplierServiceTest {
     }
 
     @Test
+    @DisplayName("Should return list of active suppliers")
     void getAllActiveSuppliers_ShouldReturnListOfActiveSuppliers() {
         when(supplierRepository.findByActiveTrue()).thenReturn(Arrays.asList(testSupplier));
 
@@ -67,6 +69,7 @@ class SupplierServiceTest {
     }
 
     @Test
+    @DisplayName("Should create supplier when data is unique")
     void createSupplier_ShouldReturnCreatedSupplier_WhenDataIsUnique() {
         when(supplierRepository.findByNameIgnoreCase("Test Supplier")).thenReturn(Optional.empty());
         when(supplierRepository.findByEmailIgnoreCase("supplier@example.com")).thenReturn(Optional.empty());
@@ -80,6 +83,7 @@ class SupplierServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when creating supplier with existing name")
     void createSupplier_ShouldThrowException_WhenNameExists() {
         when(supplierRepository.findByNameIgnoreCase("Test Supplier")).thenReturn(Optional.of(testSupplier));
 
@@ -88,6 +92,7 @@ class SupplierServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when creating supplier with existing email")
     void createSupplier_ShouldThrowException_WhenEmailExists() {
         when(supplierRepository.findByNameIgnoreCase("Test Supplier")).thenReturn(Optional.empty());
         when(supplierRepository.findByEmailIgnoreCase("supplier@example.com")).thenReturn(Optional.of(testSupplier));
@@ -97,6 +102,7 @@ class SupplierServiceTest {
     }
 
     @Test
+    @DisplayName("Should update supplier when data is unique")
     void updateSupplier_ShouldReturnUpdatedSupplier_WhenDataIsUnique() {
         when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
         when(supplierRepository.findByNameIgnoreCaseAndIdIsNot("Test Supplier", 1L)).thenReturn(Optional.empty());
@@ -110,6 +116,7 @@ class SupplierServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when updating non-existent supplier")
     void updateSupplier_ShouldThrowException_WhenSupplierNotFound() {
         when(supplierRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -118,6 +125,7 @@ class SupplierServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when updating supplier with name used by another supplier")
     void updateSupplier_ShouldThrowException_WhenNameExistsForAnotherSupplier() {
         when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
         when(supplierRepository.findByNameIgnoreCaseAndIdIsNot("Test Supplier", 1L)).thenReturn(Optional.of(new Supplier()));
@@ -127,6 +135,7 @@ class SupplierServiceTest {
     }
 
     @Test
+    @DisplayName("Should deactivate supplier successfully")
     void deactivateSupplier_ShouldSetActiveToFalse() {
         when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
         when(supplierRepository.save(any(Supplier.class))).thenAnswer(invocation -> invocation.getArgument(0));
