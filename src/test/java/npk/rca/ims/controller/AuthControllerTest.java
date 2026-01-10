@@ -7,6 +7,7 @@ import npk.rca.ims.service.EmailService;
 import npk.rca.ims.service.JwtService;
 import npk.rca.ims.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -50,6 +51,7 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("Should return token when login credentials are valid")
     void login_ShouldReturnToken_WhenCredentialsAreValid() {
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail("test@example.com");
@@ -64,6 +66,7 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("Should return Unauthorized when login credentials are invalid")
     void login_ShouldReturnUnauthorized_WhenCredentialsAreInvalid() {
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail("test@example.com");
@@ -77,6 +80,7 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("Should send reset email when forgot password user exists")
     void forgotPassword_ShouldSendEmail_WhenUserExists() {
         Map<String, String> request = new HashMap<>();
         request.put("email", "test@example.com");
@@ -91,6 +95,7 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("Should reset password when token is valid")
     void resetPassword_ShouldResetPassword_WhenTokenIsValid() {
         ResetPasswordRequest request = new ResetPasswordRequest();
         request.setToken("valid-token");

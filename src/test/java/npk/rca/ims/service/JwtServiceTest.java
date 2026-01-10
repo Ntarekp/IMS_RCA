@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import npk.rca.ims.model.User;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,6 +37,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate valid token with correct claims")
     void generateToken_ShouldGenerateValidToken() {
         String token = jwtService.generateToken(testUser);
 
@@ -46,6 +48,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate valid reset token")
     void generateResetToken_ShouldGenerateValidToken() {
         String token = jwtService.generateResetToken(testUser);
 
@@ -55,11 +58,13 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Should return false when validating invalid token string")
     void validateToken_ShouldReturnFalse_WhenTokenIsInvalid() {
         assertFalse(jwtService.validateToken("invalid.token.string"));
     }
 
     @Test
+    @DisplayName("Should return false when validating expired token")
     void validateToken_ShouldReturnFalse_WhenTokenIsExpired() {
         // Create an expired token manually or mock time (mocking time is harder with JJWT)
         // For simplicity, we'll set expiration to -1000ms

@@ -5,6 +5,7 @@ import npk.rca.ims.model.Item;
 import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.StockTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -48,6 +49,7 @@ class StockBalanceServiceTest {
     }
 
     @Test
+    @DisplayName("Should return correct balances for all items")
     void getAllBalances_ShouldReturnCorrectBalances() {
         when(itemRepository.findAll()).thenReturn(Arrays.asList(item1, item2));
         
@@ -73,6 +75,7 @@ class StockBalanceServiceTest {
     }
 
     @Test
+    @DisplayName("Should return only low stock items")
     void getLowStockItems_ShouldReturnOnlyLowStockItems() {
         when(itemRepository.findAll()).thenReturn(Arrays.asList(item1, item2));
         

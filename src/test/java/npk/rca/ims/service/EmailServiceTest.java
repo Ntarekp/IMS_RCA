@@ -3,6 +3,7 @@ package npk.rca.ims.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,6 +33,7 @@ class EmailServiceTest {
     }
 
     @Test
+    @DisplayName("Should send password reset email successfully")
     void sendPasswordResetEmail_ShouldSendEmail() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
 
@@ -41,6 +43,7 @@ class EmailServiceTest {
     }
 
     @Test
+    @DisplayName("Should handle exception gracefully when sending password reset email fails")
     void sendPasswordResetEmail_ShouldHandleException() {
         when(mailSender.createMimeMessage()).thenThrow(new RuntimeException("Mail server error"));
 
@@ -51,6 +54,7 @@ class EmailServiceTest {
     }
 
     @Test
+    @DisplayName("Should send welcome email successfully")
     void sendWelcomeEmail_ShouldSendEmail() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
 
@@ -60,6 +64,7 @@ class EmailServiceTest {
     }
     
     @Test
+    @DisplayName("Should handle exception gracefully when sending welcome email fails")
     void sendWelcomeEmail_ShouldHandleException() {
         when(mailSender.createMimeMessage()).thenThrow(new RuntimeException("Mail server error"));
 

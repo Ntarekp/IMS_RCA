@@ -71,7 +71,7 @@ class StockServiceTest {
 
         // Assert
         assertNotNull(metrics);
-        assertEquals(4, metrics.getTotalItems(), "Total items should be 4");
+        assertEquals(4, metrics.getTotal(), "Total items should be 4");
         assertEquals(2, metrics.getLowStock(), "Low stock items should be 2 (Item 2 and 4)");
         assertEquals(2, metrics.getDamaged(), "Damaged items should be 2 (Item 3 and 4)");
         assertEquals(expectedTransactions, metrics.getThisMonth(), "Transactions count should match");
@@ -84,7 +84,10 @@ class StockServiceTest {
 
         // Verify interactions
         verify(itemRepository).findAll();
-        verify(itemService, times(4)).getCurrentBalance(anyLong());
+        verify(itemService).getCurrentBalance(1L);
+        verify(itemService).getCurrentBalance(2L);
+        verify(itemService).getCurrentBalance(3L);
+        verify(itemService).getCurrentBalance(4L);
         verify(stockTransactionRepository).countByCreatedAtAfter(any(LocalDateTime.class));
     }
 
@@ -100,7 +103,7 @@ class StockServiceTest {
 
         // Assert
         assertNotNull(metrics);
-        assertEquals(0, metrics.getTotalItems());
+        assertEquals(0, metrics.getTotal());
         assertEquals(0, metrics.getLowStock());
         assertEquals(0, metrics.getDamaged());
         assertEquals(0, metrics.getThisMonth());
@@ -124,7 +127,7 @@ class StockServiceTest {
         StockMetricsDTO metrics = stockService.getMetrics();
 
         // Assert
-        assertEquals(1, metrics.getTotalItems());
+        assertEquals(1, metrics.getTotal());
         assertEquals(0, metrics.getLowStock(), "Item with balance == minStock should not be low stock");
     }
 
@@ -144,7 +147,7 @@ class StockServiceTest {
         StockMetricsDTO metrics = stockService.getMetrics();
 
         // Assert
-        assertEquals(1, metrics.getTotalItems());
+        assertEquals(1, metrics.getTotal());
         assertEquals(1, metrics.getLowStock(), "Item with balance < minStock should be low stock");
     }
 
