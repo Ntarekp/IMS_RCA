@@ -2,6 +2,7 @@ package npk.rca.ims.config;
 
 import lombok.RequiredArgsConstructor;
 import npk.rca.ims.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,6 +35,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Value("${app.cors.allowed-origins:*}")
+    private List<String> allowedOrigins;
+
     /**
      * Security filter chain - Configure which endpoints are public/private
      */
@@ -45,7 +49,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/admin/**").permitAll() // Admin utilities (can secure later)
+                // Admin endpoints - SECURED
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // All other API endpoints require authentication
                 .requestMatchers("/api/**").authenticated()
                 // Allow all other requests (static resources, etc.)
@@ -65,7 +70,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*")); // Allow all origins
+        
+        // Use configured allowed origins or default to *
+        configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

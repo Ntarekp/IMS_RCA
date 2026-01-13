@@ -13,6 +13,7 @@ The IMS backend now includes secure authentication with:
 **Email**: `ntarekayitare@gmail.com`  
 **Password**: `RcaIMS@1234.5`  
 **Role**: `ADMIN`
+INVUSER
 
 **Important**: The password is stored encrypted in the database using BCrypt. It cannot be bypassed or retrieved in plain text.
 

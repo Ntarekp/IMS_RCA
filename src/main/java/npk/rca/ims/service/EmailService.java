@@ -20,6 +20,9 @@ public class EmailService {
     @Value("${spring.mail.username:noreply@rca-ims.com}")
     private String fromEmail;
 
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+
     @Async
     public void sendPasswordResetEmail(String to, String token) {
         try {
@@ -30,7 +33,7 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject("Password Reset Request - RCA IMS");
 
-            String resetLink = "http://localhost:3000/reset-password?token=" + token;
+            String resetLink = frontendUrl + "/reset-password?token=" + token;
 
             // Public raw GitHub logo URL
             String logoUrl = "https://raw.githubusercontent.com/Ntarekp/RCA_IMS_frontend/main/Rca-stock-management/public/rca-logo.png";
@@ -117,7 +120,7 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject("Welcome to RCA IMS - Your Account Details");
 
-            String loginLink = "http://localhost:3000/login";
+            String loginLink = frontendUrl + "/login";
             String logoUrl = "https://raw.githubusercontent.com/Ntarekp/RCA_IMS_frontend/main/Rca-stock-management/public/rca-logo.png";
 
             String content = String.format("""

@@ -23,7 +23,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -188,6 +188,7 @@ class ItemServiceTest {
         Item updatedItem = new Item();
         updatedItem.setId(1L);
         updatedItem.setDamagedQuantity(5);
+        updatedItem.setMinimumStock(10); // Ensure minimumStock is set to avoid NPE
         when(itemRepository.save(any(Item.class))).thenReturn(updatedItem);
 
         when(stockTransactionRepository.getTotalInByItemId(1L)).thenReturn(100);

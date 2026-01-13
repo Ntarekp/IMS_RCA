@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import npk.rca.ims.model.User;
 import npk.rca.ims.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -20,22 +21,26 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.admin.default-email:ntarekayitare@gmail.com}")
+    private String defaultEmail;
+
+    @Value("${app.admin.default-password:RcaIMS@1234.5}")
+    private String defaultPassword;
+
     @Override
     public void run(String... args) throws Exception {
-        // Default user credentials
-        String defaultEmail = "ntarekayitare@gmail.com";
-        String defaultPassword = "RcaIMS@1234.5";
-        
         // Normalize email (lowercase, trim)
-        defaultEmail = defaultEmail.trim().toLowerCase();
+        String email = defaultEmail.trim().toLowerCase();
         
         // Check if default user already exists
-        User existingUser = userRepository.findByEmail(defaultEmail).orElse(null);
+        User existingUser = userRepository.findByEmail(email).orElse(null);
         
         if (existingUser == null) {
             // Create default user with encrypted password
             User defaultUser = new User();
-            defaultUser.setEmail(defaultEmail);
+            defaultUser.setEmail(email);
+            // Set system email
+            defaultUser.setSystemEmail(email);
             String encryptedPassword = passwordEncoder.encode(defaultPassword);
             defaultUser.setPassword(encryptedPassword); // Encrypt password
             defaultUser.setRole("ADMIN");
@@ -45,25 +50,20 @@ public class DataInitializer implements CommandLineRunner {
             
             log.info("==========================================");
             log.info("Default user created successfully!");
-            log.info("Email: {}", defaultEmail);
+            log.info("Email: {}", email);
             log.info("Password: {} (encrypted in database)", defaultPassword);
             log.info("Role: ADMIN");
             log.info("==========================================");
         } else {
-            // Update the existing user's password to ensure it matches the expected default
-            // This fixes issues where the DB has an old or different password
-            String encryptedPassword = passwordEncoder.encode(defaultPassword);
-            existingUser.setPassword(encryptedPassword);
-            existingUser.setRole("ADMIN"); // Ensure role is ADMIN
-            existingUser.setEnabled(true); // Ensure account is enabled
+            // Do not reset password for existing users in production
+            // Just ensure the role is correct if needed, or do nothing
+            if (!"ADMIN".equals(existingUser.getRole())) {
+                existingUser.setRole("ADMIN");
+                userRepository.save(existingUser);
+                log.info("Updated existing default user role to ADMIN");
+            }
             
-            userRepository.save(existingUser);
-            
-            log.info("==========================================");
-            log.info("Default user updated successfully!");
-            log.info("Email: {}", defaultEmail);
-            log.info("Password: {} (reset to default)", defaultPassword);
-            log.info("==========================================");
+            log.info("Default user already exists. Skipping creation.");
         }
     }
 }

@@ -9,6 +9,7 @@ import npk.rca.ims.model.User;
 import npk.rca.ims.repository.UserRepository;
 import npk.rca.ims.service.EmailService;
 import npk.rca.ims.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +33,12 @@ public class AdminController {
     private final PasswordEncoder passwordEncoder;
     private final UserService userService;
     private final EmailService emailService;
+
+    @Value("${app.admin.default-email:ntarekayitare@gmail.com}")
+    private String defaultEmail;
+
+    @Value("${app.admin.default-password:RcaIMS@1234.5}")
+    private String defaultPassword;
 
     /**
      * GET /api/admin/users
@@ -65,7 +72,7 @@ public class AdminController {
             // Set default password if not provided
             String password = request.getPassword();
             if (password == null || password.isEmpty()) {
-                password = "Password@123"; // Default password
+                password = "Password@123";
             }
             user.setPassword(passwordEncoder.encode(password));
             user.setRole(request.getRole());
@@ -108,7 +115,7 @@ public class AdminController {
         // Prevent deleting the main admin
         User user = userRepository.findById(id).orElseThrow();
         // Check both email and systemEmail to protect the main admin account
-        if ("ntarekayitare@gmail.com".equals(user.getEmail()) || "ntarekayitare@gmail.com".equals(user.getSystemEmail())) {
+        if (defaultEmail.equals(user.getEmail()) || defaultEmail.equals(user.getSystemEmail())) {
              return ResponseEntity.badRequest().body(Map.of("message", "Cannot delete the main administrator account"));
         }
         
@@ -123,9 +130,6 @@ public class AdminController {
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetDefaultPassword() {
         try {
-            String defaultEmail = "ntarekayitare@gmail.com";
-            String defaultPassword = "RcaIMS@1234.5";
-            
             // Try to find by email or systemEmail
             User user = userRepository.findByEmail(defaultEmail).orElse(null);
             
@@ -172,9 +176,6 @@ public class AdminController {
     @GetMapping("/verify-user")
     public ResponseEntity<?> verifyDefaultUser() {
         try {
-            String defaultEmail = "ntarekayitare@gmail.com";
-            String defaultPassword = "RcaIMS@1234.5";
-            
             User user = userRepository.findByEmail(defaultEmail).orElse(null);
             
             Map<String, Object> response = new HashMap<>();
