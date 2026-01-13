@@ -33,7 +33,9 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject("Password Reset Request - RCA IMS");
 
-            String resetLink = frontendUrl + "/reset-password?token=" + token;
+            // Use frontendUrl from properties, ensuring no double slash if configured with trailing slash
+            String baseUrl = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
+            String resetLink = baseUrl + "/reset-password?token=" + token;
 
             // Public raw GitHub logo URL
             String logoUrl = "https://raw.githubusercontent.com/Ntarekp/RCA_IMS_frontend/main/Rca-stock-management/public/rca-logo.png";
@@ -43,7 +45,7 @@ public class EmailService {
                     <div style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.08);">
 
                         <!-- Header (Clean, No Blue Background) -->
-                        <div style="display: flex; align-items: center; gap: 14px; padding: 28px 30px; border-bottom: 1px solid #e5e7eb;">
+                        <div style="display: flex; align-items: center; gap: 28px; padding: 28px 30px; border-bottom: 1px solid #e5e7eb;">
                             <img src="%s" alt="RCA Logo" style="width: 48px; height: auto;" />
                             <div>
                                 <h1 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 700;">RCA IMS</h1>
@@ -120,7 +122,10 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject("Welcome to RCA IMS - Your Account Details");
 
-            String loginLink = frontendUrl + "/login";
+            // Use frontendUrl from properties
+            String baseUrl = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
+            String loginLink = baseUrl + "/login";
+
             String logoUrl = "https://raw.githubusercontent.com/Ntarekp/RCA_IMS_frontend/main/Rca-stock-management/public/rca-logo.png";
 
             String content = String.format("""
