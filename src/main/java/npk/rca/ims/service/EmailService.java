@@ -20,8 +20,7 @@ public class EmailService {
     @Value("${spring.mail.username:noreply@rca-ims.com}")
     private String fromEmail;
 
-    // Update this to your deployed frontend URL
-    @Value("${app.frontend.url:http://10.12.72.9:8080/frontend}")
+    @Value("${app.frontend.url:http://10.12.72.9:8080/rca_ims}")
     private String frontendUrl;
 
     @Async
@@ -44,14 +43,23 @@ public class EmailService {
                     <div style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.08);">
 
                         <!-- Header -->
-                        <div style="display: flex; align-items: center; gap: 28px; padding: 28px 30px; border-bottom: 1px solid #e5e7eb;">
-                            <img src="%s" alt="RCA Logo" style="width: 48px; height: auto;" />
-                            <div>
-                                <h1 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 700;">RCA IMS</h1>
-                                <p style="margin: 2px 0 0; font-size: 12px; color: #64748b; letter-spacing: 1px; text-transform: uppercase;">
-                                    Inventory Management System
-                                </p>
-                            </div>
+                        <div style="background: linear-gradient(135deg, #1e3a8a 0%%, #2563eb 100%%); padding: 32px 30px;">
+                            <table width="100%%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="width: 64px; vertical-align: middle;">
+                                        <div style="background-color: #ffffff; border-radius: 12px; padding: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                            <img src="%s" alt="RCA Logo" style="width: 48px; height: 48px; display: block;" />
+                                        </div>
+                                    </td>
+                                    <td style="width: 24px;"></td>
+                                    <td style="vertical-align: middle;">
+                                        <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: 700; letter-spacing: -0.5px;">RCA IMS</h1>
+                                        <p style="margin: 4px 0 0; font-size: 13px; color: #93c5fd; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 500;">
+                                            Inventory Management System
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
                         </div>
 
                         <!-- Body -->
@@ -68,7 +76,7 @@ public class EmailService {
                             </p>
 
                             <div style="text-align: center; margin: 36px 0;">
-                                <a href="%s" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 14px 34px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 16px rgba(37,99,235,0.25);">
+                                <a href="%s" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 14px 34px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 16px rgba(37,99,235,0.25); transition: all 0.3s ease;">
                                     Reset Password
                                 </a>
                             </div>
@@ -79,15 +87,20 @@ public class EmailService {
                                 <a href="%s" style="color: #2563eb; text-decoration: none; word-break: break-all;">%s</a>
                             </p>
 
-                            <p style="color: #dc2626; font-size: 13px; margin-top: 16px;">
-                                <strong>Security Notice:</strong> This link will expire in 15 minutes.
-                            </p>
+                            <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 6px; padding: 16px; margin-top: 24px;">
+                                <p style="color: #dc2626; font-size: 13px; margin: 0; line-height: 1.5;">
+                                    <strong>⚠️ Security Notice:</strong> This link will expire in 15 minutes.
+                                </p>
+                            </div>
                         </div>
 
                         <!-- Footer -->
-                        <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
-                            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                        <div style="background-color: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.6;">
                                 &copy; 2024 Rwanda Coding Academy. All rights reserved.
+                            </p>
+                            <p style="color: #cbd5e1; font-size: 11px; margin: 8px 0 0;">
+                                This is an automated message, please do not reply.
                             </p>
                         </div>
                     </div>
@@ -126,19 +139,28 @@ public class EmailService {
                     <div style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.08);">
 
                         <!-- Header -->
-                        <div style="display: flex; align-items: center; gap: 14px; padding: 28px 30px; border-bottom: 1px solid #e5e7eb;">
-                            <img src="%s" alt="RCA Logo" style="width: 48px; height: auto;" />
-                            <div>
-                                <h1 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 700;">RCA IMS</h1>
-                                <p style="margin: 2px 0 0; font-size: 12px; color: #64748b; letter-spacing: 1px; text-transform: uppercase;">
-                                    Inventory Management System
-                                </p>
-                            </div>
+                        <div style="background: linear-gradient(135deg, #1e3a8a 0%%, #2563eb 100%%); padding: 32px 30px;">
+                            <table width="100%%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="width: 64px; vertical-align: middle;">
+                                        <div style="background-color: #ffffff; border-radius: 12px; padding: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                            <img src="%s" alt="RCA Logo" style="width: 48px; height: 48px; display: block;" />
+                                        </div>
+                                    </td>
+                                    <td style="width: 24px;"></td>
+                                    <td style="vertical-align: middle;">
+                                        <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: 700; letter-spacing: -0.5px;">RCA IMS</h1>
+                                        <p style="margin: 4px 0 0; font-size: 13px; color: #93c5fd; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 500;">
+                                            Inventory Management System
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
                         </div>
 
                         <!-- Body -->
                         <div style="padding: 36px 30px;">
-                            <h2 style="color: #0f172a; margin-top: 0; font-size: 22px; font-weight: 600;">Welcome Aboard!</h2>
+                            <h2 style="color: #0f172a; margin-top: 0; font-size: 22px; font-weight: 600;">Welcome Aboard! 🎉</h2>
 
                             <p style="color: #475569; line-height: 1.7; margin-top: 20px;">
                                 Hello,
@@ -149,12 +171,12 @@ public class EmailService {
                                 Below are your temporary login credentials. Please change your password immediately after logging in.
                             </p>
 
-                            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 24px 0;">
-                                <p style="margin: 0 0 10px 0; color: #64748b; font-size: 14px;">Email:</p>
-                                <p style="margin: 0 0 20px 0; color: #0f172a; font-weight: 600; font-size: 16px;">%s</p>
+                            <div style="background-color: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 24px; margin: 28px 0;">
+                                <p style="margin: 0 0 8px 0; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Email Address</p>
+                                <p style="margin: 0 0 24px 0; color: #0f172a; font-weight: 600; font-size: 16px;">%s</p>
                                 
-                                <p style="margin: 0 0 10px 0; color: #64748b; font-size: 14px;">Temporary Password:</p>
-                                <p style="margin: 0; color: #0f172a; font-weight: 600; font-size: 16px; font-family: monospace; background: #e2e8f0; padding: 4px 8px; border-radius: 4px; display: inline-block;">%s</p>
+                                <p style="margin: 0 0 8px 0; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Temporary Password</p>
+                                <p style="margin: 0; color: #0f172a; font-weight: 600; font-size: 16px; font-family: 'Courier New', monospace; background: #e2e8f0; padding: 12px 16px; border-radius: 6px; display: inline-block; border: 1px dashed #94a3b8;">%s</p>
                             </div>
 
                             <div style="text-align: center; margin: 36px 0;">
@@ -162,12 +184,21 @@ public class EmailService {
                                     Login to Dashboard
                                 </a>
                             </div>
+
+                            <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 16px; margin-top: 24px;">
+                                <p style="color: #92400e; font-size: 13px; margin: 0; line-height: 1.5;">
+                                    <strong>🔒 Security Reminder:</strong> Change your password immediately after your first login to keep your account secure.
+                                </p>
+                            </div>
                         </div>
 
                         <!-- Footer -->
-                        <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
-                            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                        <div style="background-color: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.6;">
                                 &copy; 2024 Rwanda Coding Academy. All rights reserved.
+                            </p>
+                            <p style="color: #cbd5e1; font-size: 11px; margin: 8px 0 0;">
+                                This is an automated message, please do not reply.
                             </p>
                         </div>
                     </div>
