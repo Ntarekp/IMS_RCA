@@ -20,7 +20,8 @@ public class EmailService {
     @Value("${spring.mail.username:noreply@rca-ims.com}")
     private String fromEmail;
 
-    @Value("${app.frontend.url:http://localhost:3000}")
+    // Update this to your deployed frontend URL
+    @Value("${app.frontend.url:http://10.12.72.9:8080/frontend}")
     private String frontendUrl;
 
     @Async
@@ -33,18 +34,16 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject("Password Reset Request - RCA IMS");
 
-            // Use frontendUrl from properties, ensuring no double slash if configured with trailing slash
             String baseUrl = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
             String resetLink = baseUrl + "/reset-password?token=" + token;
 
-            // Public raw GitHub logo URL
             String logoUrl = "https://raw.githubusercontent.com/Ntarekp/RCA_IMS_frontend/main/Rca-stock-management/public/rca-logo.png";
 
             String content = String.format("""
                 <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 20px; max-width: 600px; margin: 0 auto; background-color: #f1f5f9;">
                     <div style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.08);">
 
-                        <!-- Header (Clean, No Blue Background) -->
+                        <!-- Header -->
                         <div style="display: flex; align-items: center; gap: 28px; padding: 28px 30px; border-bottom: 1px solid #e5e7eb;">
                             <img src="%s" alt="RCA Logo" style="width: 48px; height: auto;" />
                             <div>
@@ -93,12 +92,7 @@ public class EmailService {
                         </div>
                     </div>
                 </div>
-                """,
-                    logoUrl,
-                    resetLink,
-                    resetLink,
-                    resetLink
-            );
+                """, logoUrl, resetLink, resetLink, resetLink);
 
             helper.setText(content, true);
             mailSender.send(message);
@@ -122,7 +116,6 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject("Welcome to RCA IMS - Your Account Details");
 
-            // Use frontendUrl from properties
             String baseUrl = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
             String loginLink = baseUrl + "/login";
 
@@ -179,12 +172,7 @@ public class EmailService {
                         </div>
                     </div>
                 </div>
-                """,
-                    logoUrl,
-                    to,
-                    tempPassword,
-                    loginLink
-            );
+                """, logoUrl, to, tempPassword, loginLink);
 
             helper.setText(content, true);
             mailSender.send(message);
