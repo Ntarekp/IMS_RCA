@@ -57,7 +57,7 @@ public class ReportController {
             byte[] pdfContent = reportService.generateTransactionReportPdf(startDate, endDate, itemId);
             
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=transaction_report.pdf")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=transaction_report.pdf")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdfContent);
         } catch (Exception e) {
@@ -96,7 +96,7 @@ public class ReportController {
             byte[] pdfContent = reportService.generateBalanceReportPdf();
             
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=stock_balance_report.pdf")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=stock_balance_report.pdf")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdfContent);
         } catch (Exception e) {
@@ -132,7 +132,7 @@ public class ReportController {
             byte[] pdfContent = reportService.generateLowStockReportPdf();
             
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=low_stock_report.pdf")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=low_stock_report.pdf")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdfContent);
         } catch (Exception e) {
@@ -168,7 +168,7 @@ public class ReportController {
             byte[] pdfContent = reportService.generateSupplierReportPdf();
             
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=suppliers_report.pdf")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=suppliers_report.pdf")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdfContent);
         } catch (Exception e) {

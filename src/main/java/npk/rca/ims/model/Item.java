@@ -36,7 +36,7 @@ public class Item {
      * Default is 0. This is updated when damaged stock is recorded.
      */
     @Column(nullable = false)
-    private int damagedQuantity = 0;
+    private Integer damagedQuantity = 0;
 
     @NotNull(message = "Minimum stock level is required")
     @Positive(message = "Minimum stock must be positive")

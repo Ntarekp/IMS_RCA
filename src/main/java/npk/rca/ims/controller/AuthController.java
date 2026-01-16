@@ -170,6 +170,8 @@ public class AuthController {
             response.put("phone", user.getPhone());
             response.put("department", user.getDepartment());
             response.put("location", user.getLocation());
+            response.put("avatarUrl", user.getAvatarUrl());
+            response.put("coverUrl", user.getCoverUrl());
             
             // Settings
             response.put("emailNotifications", user.isEmailNotifications());
@@ -210,6 +212,8 @@ public class AuthController {
                 request.getPhone(),
                 request.getDepartment(),
                 request.getLocation(),
+                request.getAvatarUrl(),
+                request.getCoverUrl(),
                 request.getEmailNotifications(),
                 request.getSmsNotifications(),
                 request.getTwoFactorAuth(),
@@ -225,7 +229,9 @@ public class AuthController {
             response.put("phone", updatedUser.getPhone());
             response.put("department", updatedUser.getDepartment());
             response.put("location", updatedUser.getLocation());
-            
+            response.put("avatarUrl", updatedUser.getAvatarUrl());
+            response.put("coverUrl", updatedUser.getCoverUrl());
+
             // Settings
             response.put("emailNotifications", updatedUser.isEmailNotifications());
             response.put("smsNotifications", updatedUser.isSmsNotifications());

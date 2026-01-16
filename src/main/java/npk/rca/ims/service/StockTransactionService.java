@@ -160,6 +160,89 @@ public class StockTransactionService {
     }
 
     /**
+     * Update transaction metadata (notes, reference number)
+     * Does NOT allow changing quantity, item, or type to preserve audit trail
+     */
+    @Transactional
+    public StockTransactionDTO updateTransaction(Long id, StockTransactionDTO transactionDTO) {
+        StockTransaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + id));
+
+        if (transaction.isReversed()) {
+            throw new IllegalStateException("Cannot update a reversed transaction");
+        }
+
+        // Only allow updating metadata fields
+        transaction.setNotes(transactionDTO.getNotes());
+        transaction.setReferenceNumber(transactionDTO.getReferenceNumber());
+        // transaction.setRecordedBy(transactionDTO.getRecordedBy()); // Optional: update who modified it?
+
+        StockTransaction savedTransaction = transactionRepository.save(transaction);
+        
+        // Calculate balance (unchanged, but needed for DTO)
+        Integer currentBalance = calculateBalance(transaction.getItem().getId());
+        
+        StockTransactionDTO resultDTO = convertToDTO(savedTransaction);
+        resultDTO.setBalanceAfter(currentBalance);
+        
+        return resultDTO;
+    }
+
+    /**
+     * Reverse a transaction by creating a counter-transaction
+     */
+    @Transactional
+    public StockTransactionDTO reverseTransaction(Long id, String reason, String reversedBy) {
+        StockTransaction originalTransaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + id));
+
+        if (originalTransaction.isReversed()) {
+            throw new IllegalStateException("Transaction is already reversed");
+        }
+
+        // Check if reversal is possible (e.g. reversing an IN transaction shouldn't make stock negative)
+        if (originalTransaction.getTransactionType() == TransactionType.IN) {
+            Integer currentBalance = calculateBalance(originalTransaction.getItem().getId());
+            if (originalTransaction.getQuantity() > currentBalance) {
+                throw new IllegalStateException(
+                        "Cannot reverse this transaction! Insufficient stock available to remove " + 
+                        originalTransaction.getQuantity() + " items.");
+            }
+        }
+
+        // Mark original as reversed
+        originalTransaction.setReversed(true);
+        transactionRepository.save(originalTransaction);
+
+        // Create counter-transaction
+        StockTransaction reversalTransaction = new StockTransaction();
+        reversalTransaction.setItem(originalTransaction.getItem());
+        
+        // Swap transaction type
+        reversalTransaction.setTransactionType(
+                originalTransaction.getTransactionType() == TransactionType.IN ? 
+                        TransactionType.OUT : TransactionType.IN
+        );
+        
+        reversalTransaction.setQuantity(originalTransaction.getQuantity());
+        reversalTransaction.setTransactionDate(LocalDate.now());
+        reversalTransaction.setReferenceNumber("REV-" + originalTransaction.getId());
+        reversalTransaction.setNotes("Reversal of transaction #" + originalTransaction.getId() + ": " + reason);
+        reversalTransaction.setRecordedBy(reversedBy);
+        reversalTransaction.setOriginalTransaction(originalTransaction);
+        
+        StockTransaction savedReversal = transactionRepository.save(reversalTransaction);
+
+        // Calculate new balance
+        Integer newBalance = calculateBalance(originalTransaction.getItem().getId());
+        
+        StockTransactionDTO resultDTO = convertToDTO(savedReversal);
+        resultDTO.setBalanceAfter(newBalance);
+        
+        return resultDTO;
+    }
+
+    /**
      * Generate stock balance report for all items
      * This is what the school will use for reports!
      */
@@ -233,7 +316,12 @@ public class StockTransactionService {
         dto.setNotes(transaction.getNotes());
         dto.setRecordedBy(transaction.getRecordedBy());
         dto.setCreatedAt(transaction.getCreatedAt());
+        dto.setReversed(transaction.isReversed());
         
+        if (transaction.getOriginalTransaction() != null) {
+            dto.setOriginalTransactionId(transaction.getOriginalTransaction().getId());
+        }
+
         if (transaction.getSupplier() != null) {
             dto.setSupplierId(transaction.getSupplier().getId());
             dto.setSupplierName(transaction.getSupplier().getName());

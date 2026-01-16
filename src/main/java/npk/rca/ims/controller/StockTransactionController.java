@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * StockTransactionController - REST API for stock movements
@@ -107,6 +108,39 @@ public class StockTransactionController {
         StockTransactionDTO created =
                 transactionService.recordTransaction(transactionDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    /**
+     * PUT /api/transactions/{id}
+     * Update transaction metadata (notes, reference number)
+     * 
+     * Does NOT allow changing quantity, item, or type to preserve audit trail.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<StockTransactionDTO> updateTransaction(
+            @PathVariable Long id,
+            @RequestBody StockTransactionDTO transactionDTO) {
+        
+        StockTransactionDTO updated = transactionService.updateTransaction(id, transactionDTO);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * DELETE /api/transactions/{id}
+     * Reverse a transaction
+     * 
+     * Does not physically delete, but creates a counter-transaction.
+     * 
+     * Optional query param: ?reason=Entered%20by%20mistake
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<StockTransactionDTO> reverseTransaction(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "Reversed by user") String reason,
+            @RequestParam(required = false, defaultValue = "System") String reversedBy) {
+        
+        StockTransactionDTO reversal = transactionService.reverseTransaction(id, reason, reversedBy);
+        return ResponseEntity.ok(reversal);
     }
 
     /**

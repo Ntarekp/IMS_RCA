@@ -48,4 +48,8 @@ public class StockTransactionDTO {
     // Supplier information
     private Long supplierId;
     private String supplierName;
+
+    // Reversal information
+    private boolean isReversed;
+    private Long originalTransactionId;
 }

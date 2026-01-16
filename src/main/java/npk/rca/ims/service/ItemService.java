@@ -247,7 +247,15 @@ public class ItemService {
         dto.setDamagedQuantity(item.getDamagedQuantity());
 
         // Calculate current balance from transactions
-        int currentBalance = calculateCurrentBalance(item.getId());
+        Integer totalIn = stockTransactionRepository.getTotalInByItemId(item.getId());
+        Integer totalOut = stockTransactionRepository.getTotalOutByItemId(item.getId());
+        
+        int stockIn = (totalIn != null) ? totalIn : 0;
+        int stockOut = (totalOut != null) ? totalOut : 0;
+        int currentBalance = stockIn - stockOut;
+        
+        dto.setTotalIn(stockIn);
+        dto.setTotalOut(stockOut);
         dto.setCurrentBalance(currentBalance);
 
         // Determine if low stock

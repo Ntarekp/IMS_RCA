@@ -4,11 +4,16 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import npk.rca.ims.dto.StockBalanceDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -16,12 +21,16 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private final JavaMailSender mailSender;
+    private final StockBalanceService stockBalanceService;
 
     @Value("${spring.mail.username:noreply@rca-ims.com}")
     private String fromEmail;
 
     @Value("${app.frontend.url:http://10.12.72.9:8080/rca_ims}")
     private String frontendUrl;
+
+    @Value("${app.admin.default-email:ntarekayitare@gmail.com}")
+    private String adminEmail;
 
     @Async
     public void sendPasswordResetEmail(String to, String token) {
@@ -214,6 +223,115 @@ public class EmailService {
             log.error("Failed to send welcome email to {}", to, e);
         } catch (Exception e) {
             log.error("Unexpected error sending welcome email to {}", to, e);
+        }
+    }
+
+    @Scheduled(cron = "0 0 8 * * *") // Runs every day at 8 AM
+    public void sendDailyStockSummary() {
+        try {
+            List<StockBalanceDTO> lowStockItems = stockBalanceService.getLowStockItems();
+            
+            if (lowStockItems.isEmpty()) {
+                log.info("No low stock items to report today.");
+                return;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(adminEmail);
+            helper.setSubject("Daily Low Stock Alert - RCA IMS");
+
+            StringBuilder itemsHtml = new StringBuilder();
+            for (StockBalanceDTO item : lowStockItems) {
+                itemsHtml.append(String.format("""
+                    <tr>
+                        <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">%s</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: center;">%d %s</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: center;">%d %s</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626; font-weight: bold;">LOW</td>
+                    </tr>
+                """, item.getItemName(), item.getCurrentBalance(), item.getUnit(), item.getMinimumStock(), item.getUnit()));
+            }
+
+            String logoUrl = "https://raw.githubusercontent.com/Ntarekp/RCA_IMS_frontend/main/Rca-stock-management/public/rca-logo.png";
+            String dashboardLink = frontendUrl.endsWith("/") ? frontendUrl : frontendUrl + "/";
+
+            String content = String.format("""
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 20px; max-width: 600px; margin: 0 auto; background-color: #f1f5f9;">
+                    <div style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.08);">
+
+                        <!-- Header -->
+                        <div style="background: linear-gradient(135deg, #dc2626 0%%, #ef4444 100%%); padding: 32px 30px;">
+                            <table width="100%%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="width: 64px; vertical-align: middle;">
+                                        <div style="background-color: #ffffff; border-radius: 12px; padding: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                            <img src="%s" alt="RCA Logo" style="width: 48px; height: 48px; display: block;" />
+                                        </div>
+                                    </td>
+                                    <td style="width: 24px;"></td>
+                                    <td style="vertical-align: middle;">
+                                        <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: 700; letter-spacing: -0.5px;">Low Stock Alert</h1>
+                                        <p style="margin: 4px 0 0; font-size: 13px; color: #fecaca; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 500;">
+                                            Action Required
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- Body -->
+                        <div style="padding: 36px 30px;">
+                            <p style="color: #475569; line-height: 1.7; margin-top: 0;">
+                                Hello Admin,
+                            </p>
+
+                            <p style="color: #475569; line-height: 1.7;">
+                                The following items have fallen below their minimum stock levels and require restocking:
+                            </p>
+
+                            <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="margin: 24px 0; font-size: 14px; color: #334155;">
+                                <thead>
+                                    <tr style="background-color: #f8fafc;">
+                                        <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">Item</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">Current</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">Min Level</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    %s
+                                </tbody>
+                            </table>
+
+                            <div style="text-align: center; margin: 36px 0;">
+                                <a href="%s" style="display: inline-block; background-color: #dc2626; color: #ffffff; padding: 14px 34px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 16px rgba(220,38,38,0.25);">
+                                    View Inventory
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div style="background-color: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.6;">
+                                &copy; 2024 Rwanda Coding Academy. All rights reserved.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                """, logoUrl, itemsHtml.toString(), dashboardLink);
+
+            helper.setText(content, true);
+            mailSender.send(message);
+
+            log.info("Daily low stock alert sent to {}", adminEmail);
+
+        } catch (MessagingException e) {
+            log.error("Failed to send daily low stock alert", e);
+        } catch (Exception e) {
+            log.error("Unexpected error sending daily low stock alert", e);
         }
     }
 }

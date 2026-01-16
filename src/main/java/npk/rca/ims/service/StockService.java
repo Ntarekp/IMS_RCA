@@ -39,9 +39,10 @@ public class StockService {
                 .count();
 
         // Count items with damaged quantity > 0
+        // This is now based on the actual damagedQuantity field in the Item entity
         long damaged = items.stream()
-                .filter(item -> item.getDamagedQuantity() > 0)
-                .count();
+                .mapToLong(item -> item.getDamagedQuantity() != null ? item.getDamagedQuantity() : 0)
+                .sum();
 
         // Count transactions created in the last month (monthly inflow)
         LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);

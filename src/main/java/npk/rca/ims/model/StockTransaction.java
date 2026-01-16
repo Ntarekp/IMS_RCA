@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
  * 1. @ManyToOne - Many transactions belong to ONE item
  * 2. @JoinColumn - Specifies foreign key column name
  * 3. @Enumerated - Stores enum as string in database
- * 4. This is an IMMUTABLE record - once created, never modified
+ * 4. This is an IMMUTABLE record - once created, never modified (except for metadata updates)
  */
 @Entity
 @Table(name = "stock_transactions")
@@ -97,4 +97,18 @@ public class StockTransaction {
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    /**
+     * Indicates if this transaction has been reversed.
+     */
+    @Column(nullable = false)
+    private boolean isReversed = false;
+
+    /**
+     * If this transaction is a reversal (counter-transaction),
+     * this field references the original transaction it reversed.
+     */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "original_transaction_id")
+    private StockTransaction originalTransaction;
 }
