@@ -85,5 +85,29 @@ class SupplierControllerTest {
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
-}
 
+    @Test
+    void reactivateSupplier_ShouldReturnNoContent() {
+        doNothing().when(supplierService).reactivateSupplier(1L);
+
+        ResponseEntity<Void> response = supplierController.reactivateSupplier(1L);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+    }
+
+    @Test
+    void deleteSupplier_ShouldReturnNoContent() {
+        DeleteRequestDTO request = new DeleteRequestDTO();
+        request.setPassword("password");
+
+        Principal principal = () -> "test@example.com";
+
+        doNothing().when(supplierService)
+                .deleteSupplier(1L, "test@example.com", "password");
+
+        ResponseEntity<Void> response =
+                supplierController.deleteSupplier(1L, request, principal);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+    }
+}
