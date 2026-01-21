@@ -1,4 +1,5 @@
 package npk.rca.ims.repository;
+
 import npk.rca.ims.model.Item;
 import npk.rca.ims.model.StockTransaction;
 import npk.rca.ims.model.TransactionType;
@@ -17,8 +18,12 @@ import java.util.List;
 @Repository
 public interface StockTransactionRepository extends JpaRepository<StockTransaction, Long> {
 
+    // Fetch transactions by Item entity
     List<StockTransaction> findByItem(Item item);
-    List<StockTransaction> findByItemId(Long itemId);
+
+    // Fetch transactions by Item ID
+    List<StockTransaction> findByItem_Id(Long itemId);
+
     List<StockTransaction> findByTransactionType(TransactionType type);
     List<StockTransaction> findByTransactionDateBetween(LocalDate startDate, LocalDate endDate);
     List<StockTransaction> findByItemAndTransactionType(Item item, TransactionType type);
@@ -36,7 +41,6 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
 
     long countByCreatedAtAfter(LocalDateTime date);
 
-    // New query to fetch all OUT transactions for analytics
     @Query("SELECT t FROM StockTransaction t WHERE t.transactionType = 'OUT'")
     List<StockTransaction> findAllOutTransactions();
 }

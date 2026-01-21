@@ -12,6 +12,9 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
     // Find all active suppliers
     List<Supplier> findByActiveTrue();
 
+    // Find all inactive suppliers
+    List<Supplier> findByActiveFalse();
+
     // Check if a supplier with a given name exists (case-insensitive)
     Optional<Supplier> findByNameIgnoreCase(String name);
 

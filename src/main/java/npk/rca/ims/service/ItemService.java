@@ -169,7 +169,7 @@ public class ItemService {
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
         
         // Before deleting the item, we must delete its transactions to avoid constraint violations
-        stockTransactionRepository.deleteAll(stockTransactionRepository.findByItemId(id));
+        stockTransactionRepository.deleteAll(stockTransactionRepository.findByItem_Id(id));
 
         itemRepository.delete(item);
     }

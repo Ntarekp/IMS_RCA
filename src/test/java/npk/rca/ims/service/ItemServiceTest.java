@@ -137,7 +137,7 @@ class ItemServiceTest {
     @DisplayName("Should delete item and its transactions when item exists")
     void deleteItem_ShouldDeleteItem_WhenItemExists() {
         when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
-        when(stockTransactionRepository.findByItemId(1L)).thenReturn(Collections.emptyList());
+        when(stockTransactionRepository.findByItem_Id(1L)).thenReturn(Collections.emptyList());
 
         itemService.deleteItem(1L);
 
@@ -155,7 +155,7 @@ class ItemServiceTest {
         when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
         when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
-        when(stockTransactionRepository.findByItemId(1L)).thenReturn(Collections.emptyList());
+        when(stockTransactionRepository.findByItem_Id(1L)).thenReturn(Collections.emptyList());
 
         itemService.deleteItemWithPasswordVerification(1L, "admin@example.com", "password");
 

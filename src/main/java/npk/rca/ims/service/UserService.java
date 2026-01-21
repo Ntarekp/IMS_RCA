@@ -11,9 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
-/**
- * UserService - Business logic for user management
- */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -23,88 +20,65 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /**
-     * Find user by email
-     */
+    /* =========================
+       FIND & AUTHENTICATION
+       ========================= */
+
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
-    /**
-     * Verify user credentials
-     * Returns user if credentials are valid, null otherwise
-     */
     public User authenticate(String email, String password) {
         if (email == null || password == null) {
-            log.warn("Authentication attempt with null email or password");
+            log.warn("Authentication attempt with null credentials");
             return null;
         }
-        
-        // Trim email to handle whitespace
+
         email = email.trim().toLowerCase();
-        
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        
-        if (userOpt.isEmpty()) {
-            log.warn("Authentication failed: User not found with email: {}", email);
-            return null;
-        }
-        
-        User user = userOpt.get();
-        
-        // Verify password using BCrypt
-        boolean passwordMatches = passwordEncoder.matches(password, user.getPassword());
-        if (!passwordMatches) {
-            log.warn("Authentication failed: Invalid password for email: {}", email);
-            return null;
-        }
-        
-        // Check if user is enabled
-        if (!user.isEnabled()) {
-            log.warn("Authentication failed: User account is disabled for email: {}", email);
-            return null;
-        }
-        
-        log.info("Authentication successful for email: {}", email);
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return null;
+
+        if (!passwordEncoder.matches(password, user.getPassword())) return null;
+        if (!user.isEnabled()) return null;
+
         return user;
     }
 
-    /**
-     * Create a new user (for admin use)
-     */
+    /* =========================
+       USER CREATION
+       ========================= */
+
     @Transactional
     public User createUser(String email, String password, String role) {
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("User with email " + email + " already exists");
         }
-        
+
         User user = new User();
         user.setEmail(email);
-        // Set system email to the initial email
         user.setSystemEmail(email);
-        user.setPassword(passwordEncoder.encode(password)); // Encrypt password
+        user.setPassword(passwordEncoder.encode(password));
         user.setRole(role != null ? role : "USER");
         user.setEnabled(true);
-        
+
         return userRepository.save(user);
     }
 
-    /**
-     * Check if user exists
-     */
     public boolean userExists(String email) {
         return userRepository.existsByEmail(email);
     }
 
-    /**
-     * Update user profile
-     */
+    /* =====================================================
+       PRIMARY updateProfile (USED BY AuthController)
+       ===================================================== */
+
     @Transactional
     public User updateProfile(
-            String email, 
-            String newEmail, 
-            String name, 
-            String phone, 
+            String email,
+            String newEmail,
+            String name,
+            String phone,
             String department,
             String location,
             String avatarUrl,
@@ -116,20 +90,22 @@ public class UserService {
             String language
     ) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
-        
-        // If email is being changed, check if new email already exists
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found with email: " + email));
+
+        // Email change
         if (newEmail != null && !newEmail.equals(email)) {
             if (userRepository.existsByEmail(newEmail)) {
                 throw new IllegalArgumentException("Email " + newEmail + " is already in use");
             }
-            // If systemEmail is null (legacy users), set it to the old email before changing
+
             if (user.getSystemEmail() == null) {
                 user.setSystemEmail(user.getEmail());
             }
+
             user.setEmail(newEmail.trim().toLowerCase());
         }
-        
+
         if (name != null) user.setName(name);
         if (phone != null) user.setPhone(phone);
         if (department != null) user.setDepartment(department);
@@ -140,62 +116,91 @@ public class UserService {
         if (emailNotifications != null) user.setEmailNotifications(emailNotifications);
         if (smsNotifications != null) user.setSmsNotifications(smsNotifications);
         if (twoFactorAuth != null) user.setTwoFactorAuth(twoFactorAuth);
+
         if (theme != null) user.setTheme(theme);
         if (language != null) user.setLanguage(language);
-        
+
         return userRepository.save(user);
     }
 
-    /**
-     * Change user password
-     */
+    /* =====================================================
+       OVERLOADED updateProfile (USED BY UNIT TESTS)
+       ===================================================== */
+
+    @Transactional
+    public User updateProfile(
+            String email,
+            String newEmail,
+            String name,
+            String phone,
+            String department,
+            String location,
+            Boolean notifications,
+            Boolean emailAlerts,
+            Boolean smsAlerts,
+            String theme,
+            String language
+    ) {
+        return updateProfile(
+                email,
+                newEmail,
+                name,
+                phone,
+                department,
+                location,
+                null, // avatarUrl
+                null, // coverUrl
+                emailAlerts != null ? emailAlerts : notifications,
+                smsAlerts != null ? smsAlerts : notifications,
+                null, // twoFactorAuth
+                theme,
+                language
+        );
+    }
+
+    /* =========================
+       PASSWORD MANAGEMENT
+       ========================= */
+
     @Transactional
     public User changePassword(String email, String currentPassword, String newPassword) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
-        
-        // Verify current password
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found with email: " + email));
+
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new IllegalArgumentException("Current password is incorrect");
         }
-        
-        // Validate new password
+
         if (newPassword == null || newPassword.length() < 8) {
             throw new IllegalArgumentException("New password must be at least 8 characters long");
         }
-        
-        // Update password
+
         user.setPassword(passwordEncoder.encode(newPassword));
-        
-        log.info("Password changed successfully for user: {}", email);
         return userRepository.save(user);
     }
 
-    /**
-     * Reset user password (without old password check)
-     */
     @Transactional
     public User resetPassword(String email, String newPassword) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
-        
-        // Validate new password
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found with email: " + email));
+
         if (newPassword == null || newPassword.length() < 8) {
             throw new IllegalArgumentException("New password must be at least 8 characters long");
         }
-        
-        // Update password
+
         user.setPassword(passwordEncoder.encode(newPassword));
-        
-        log.info("Password reset successfully for user: {}", email);
         return userRepository.save(user);
     }
 
-    /**
-     * Get current user profile
-     */
+    /* =========================
+       PROFILE FETCH
+       ========================= */
+
     public User getProfile(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found with email: " + email));
     }
 }

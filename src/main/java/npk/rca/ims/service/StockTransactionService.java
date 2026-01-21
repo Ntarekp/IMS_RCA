@@ -53,7 +53,7 @@ public class StockTransactionService {
             throw new ResourceNotFoundException("Item not found with id: " + itemId);
         }
 
-        List<StockTransaction> transactions = transactionRepository.findByItemId(itemId);
+        List<StockTransaction> transactions = transactionRepository.findByItem_Id(itemId);
         return calculateBalancesForTransactions(transactions);
     }
 

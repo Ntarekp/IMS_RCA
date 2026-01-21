@@ -99,7 +99,7 @@ class StockTransactionServiceTest {
     @DisplayName("Should return transactions for specific item when item exists")
     void getTransactionsByItemId_ShouldReturnTransactions_WhenItemExists() {
         when(itemRepository.existsById(1L)).thenReturn(true);
-        when(transactionRepository.findByItemId(1L)).thenReturn(Arrays.asList(testTransactionIn));
+        when(transactionRepository.findByItem_Id(1L)).thenReturn(Arrays.asList(testTransactionIn));
 
         List<StockTransactionDTO> result = stockTransactionService.getTransactionsByItemId(1L);
 
