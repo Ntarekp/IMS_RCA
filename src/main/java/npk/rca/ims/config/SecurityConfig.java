@@ -49,6 +49,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+                // Allow file downloads publicly (or secure if needed)
+                .requestMatchers("/api/files/download/**").permitAll()
                 // Admin endpoints - SECURED
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // All other API endpoints require authentication
