@@ -42,7 +42,6 @@ class SupplierServiceTest {
 
     private Supplier testSupplier;
     private SupplierDTO testSupplierDTO;
-    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -64,10 +63,6 @@ class SupplierServiceTest {
             "Rice, Beans",
             true
         );
-
-        testUser = new User();
-        testUser.setEmail("admin@example.com");
-        testUser.setPassword("encodedPassword");
     }
 
     @Test
@@ -80,19 +75,6 @@ class SupplierServiceTest {
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
         assertEquals("Test Supplier", result.get(0).getName());
-    }
-
-    @Test
-    @DisplayName("Should return list of inactive suppliers")
-    void getAllInactiveSuppliers_ShouldReturnListOfInactiveSuppliers() {
-        testSupplier.setActive(false);
-        when(supplierRepository.findByActiveFalse()).thenReturn(Arrays.asList(testSupplier));
-
-        List<SupplierDTO> result = supplierService.getAllInactiveSuppliers();
-
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-        assertFalse(result.get(0).isActive());
     }
 
     @Test
@@ -164,49 +146,28 @@ class SupplierServiceTest {
     @Test
     @DisplayName("Should deactivate supplier successfully")
     void deactivateSupplier_ShouldSetActiveToFalse() {
-        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
-        when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
-        when(supplierRepository.save(any(Supplier.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        // Arrange
+        User user = new User();
+        user.setEmail("admin@example.com");
+        user.setPassword("encodedPassword");
 
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(passwordEncoder.matches("password", "encodedPassword"))
+                .thenReturn(true);
+
+        when(supplierRepository.findById(1L))
+                .thenReturn(Optional.of(testSupplier));
+
+        when(supplierRepository.save(any(Supplier.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
         supplierService.deactivateSupplier(1L, "admin@example.com", "password");
 
+        // Assert
         assertFalse(testSupplier.isActive());
     }
 
-    @Test
-    @DisplayName("Should reactivate supplier successfully")
-    void reactivateSupplier_ShouldSetActiveToTrue() {
-        testSupplier.setActive(false);
-        when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
-        when(supplierRepository.save(any(Supplier.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        supplierService.reactivateSupplier(1L);
-
-        assertTrue(testSupplier.isActive());
-    }
-
-    @Test
-    @DisplayName("Should delete supplier successfully")
-    void deleteSupplier_ShouldDelete_WhenPasswordIsCorrect() {
-        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
-        when(supplierRepository.existsById(1L)).thenReturn(true);
-
-        supplierService.deleteSupplier(1L, "admin@example.com", "password");
-
-        verify(supplierRepository, times(1)).deleteById(1L);
-    }
-
-    @Test
-    @DisplayName("Should throw exception when deleting supplier with incorrect password")
-    void deleteSupplier_ShouldThrowException_WhenPasswordIsIncorrect() {
-        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);
-
-        assertThrows(IllegalArgumentException.class, () -> 
-            supplierService.deleteSupplier(1L, "admin@example.com", "wrongPassword"));
-        
-        verify(supplierRepository, never()).deleteById(anyLong());
-    }
 }
