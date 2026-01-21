@@ -3,6 +3,9 @@ package npk.rca.ims.service;
 import npk.rca.ims.dto.SupplierDTO;
 import npk.rca.ims.exceptions.ResourceNotFoundException;
 import npk.rca.ims.model.Supplier;
+import npk.rca.ims.model.User;
+import npk.rca.ims.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import npk.rca.ims.repository.SupplierRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +30,12 @@ class SupplierServiceTest {
 
     @Mock
     private SupplierRepository supplierRepository;
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
 
     @InjectMocks
     private SupplierService supplierService;
@@ -137,11 +146,28 @@ class SupplierServiceTest {
     @Test
     @DisplayName("Should deactivate supplier successfully")
     void deactivateSupplier_ShouldSetActiveToFalse() {
-        when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
-        when(supplierRepository.save(any(Supplier.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        // Arrange
+        User user = new User();
+        user.setEmail("admin@example.com");
+        user.setPassword("encodedPassword");
 
-        supplierService.deactivateSupplier(1L);
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(user));
 
+        when(passwordEncoder.matches("password", "encodedPassword"))
+                .thenReturn(true);
+
+        when(supplierRepository.findById(1L))
+                .thenReturn(Optional.of(testSupplier));
+
+        when(supplierRepository.save(any(Supplier.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        supplierService.deactivateSupplier(1L, "admin@example.com", "password");
+
+        // Assert
         assertFalse(testSupplier.isActive());
     }
+
 }

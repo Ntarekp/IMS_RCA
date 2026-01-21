@@ -10,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import java.security.Principal;
+import npk.rca.ims.dto.DeleteRequestDTO;
 
 import java.util.Arrays;
 import java.util.List;
@@ -70,10 +72,18 @@ class SupplierControllerTest {
 
     @Test
     void deactivateSupplier_ShouldReturnNoContent() {
-        doNothing().when(supplierService).deactivateSupplier(1L);
+        DeleteRequestDTO request = new DeleteRequestDTO();
+        request.setPassword("password");
 
-        ResponseEntity<Void> response = supplierController.deactivateSupplier(1L);
+        Principal principal = () -> "test@example.com";
+
+        doNothing().when(supplierService)
+                .deactivateSupplier(1L, "test@example.com", "password");
+
+        ResponseEntity<Void> response =
+                supplierController.deactivateSupplier(1L, request, principal);
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
 }
+
