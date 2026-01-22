@@ -44,15 +44,42 @@ public class ReportService {
     private final StockTransactionService transactionService;
     private final StockBalanceService balanceService;
     private final SupplierService supplierService;
+    private final ReportHistoryRepository reportHistoryRepository;
+
+    public List<ReportHistory> getReportHistory() {
+        return reportHistoryRepository.findAllByOrderByGeneratedDateDesc();
+    }
+
+    private void saveReportHistory(String title, String type, String format, String status, int sizeBytes) {
+        String size;
+        if (sizeBytes > 1024 * 1024) {
+            size = String.format("%.2f MB", sizeBytes / (1024.0 * 1024.0));
+        } else {
+            size = String.format("%.2f KB", sizeBytes / 1024.0);
+        }
+
+        ReportHistory history = ReportHistory.builder()
+                .title(title)
+                .type(type)
+                .format(format)
+                .status(status)
+                .size(size)
+                .build();
+
+        reportHistoryRepository.save(history);
+    }
 
     // ============ TRANSACTION REPORTS ============
 
     public byte[] generateTransactionReportPdf(LocalDate startDate, LocalDate endDate, Long itemId) {
         try {
             List<StockTransactionDTO> transactions = getFilteredTransactions(startDate, endDate, itemId, null);
-            return createTransactionPdfReport(transactions, "Complete Transaction History", startDate, endDate);
+            byte[] report = createTransactionPdfReport(transactions, "Complete Transaction History", startDate, endDate);
+            saveReportHistory("Complete Transaction History", "TRANSACTION", "PDF", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating transaction PDF report", e);
+            saveReportHistory("Complete Transaction History", "TRANSACTION", "PDF", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate transaction PDF report", e);
         }
     }
@@ -60,9 +87,12 @@ public class ReportService {
     public byte[] generateTransactionReportExcel(LocalDate startDate, LocalDate endDate, Long itemId) {
         try {
             List<StockTransactionDTO> transactions = getFilteredTransactions(startDate, endDate, itemId, null);
-            return createTransactionExcelReport(transactions, "Complete Transaction History", startDate, endDate);
+            byte[] report = createTransactionExcelReport(transactions, "Complete Transaction History", startDate, endDate);
+            saveReportHistory("Complete Transaction History", "TRANSACTION", "EXCEL", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating transaction Excel report", e);
+            saveReportHistory("Complete Transaction History", "TRANSACTION", "EXCEL", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate transaction Excel report", e);
         }
     }
@@ -77,9 +107,12 @@ public class ReportService {
                         .filter(t -> supplierId.equals(t.getSupplierId()))
                         .collect(Collectors.toList());
             }
-            return createTransactionPdfReport(transactions, "Stock IN Report", startDate, endDate);
+            byte[] report = createTransactionPdfReport(transactions, "Stock IN Report", startDate, endDate);
+            saveReportHistory("Stock IN Report", "STOCK_IN", "PDF", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating stock-in PDF report", e);
+            saveReportHistory("Stock IN Report", "STOCK_IN", "PDF", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate stock-in PDF report", e);
         }
     }
@@ -92,9 +125,12 @@ public class ReportService {
                         .filter(t -> supplierId.equals(t.getSupplierId()))
                         .collect(Collectors.toList());
             }
-            return createTransactionExcelReport(transactions, "Stock IN Report", startDate, endDate);
+            byte[] report = createTransactionExcelReport(transactions, "Stock IN Report", startDate, endDate);
+            saveReportHistory("Stock IN Report", "STOCK_IN", "EXCEL", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating stock-in Excel report", e);
+            saveReportHistory("Stock IN Report", "STOCK_IN", "EXCEL", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate stock-in Excel report", e);
         }
     }
@@ -104,9 +140,12 @@ public class ReportService {
     public byte[] generateStockOutReportPdf(LocalDate startDate, LocalDate endDate) {
         try {
             List<StockTransactionDTO> transactions = getFilteredTransactions(startDate, endDate, null, TransactionType.OUT);
-            return createTransactionPdfReport(transactions, "Stock OUT Report", startDate, endDate);
+            byte[] report = createTransactionPdfReport(transactions, "Stock OUT Report", startDate, endDate);
+            saveReportHistory("Stock OUT Report", "STOCK_OUT", "PDF", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating stock-out PDF report", e);
+            saveReportHistory("Stock OUT Report", "STOCK_OUT", "PDF", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate stock-out PDF report", e);
         }
     }
@@ -114,9 +153,12 @@ public class ReportService {
     public byte[] generateStockOutReportExcel(LocalDate startDate, LocalDate endDate) {
         try {
             List<StockTransactionDTO> transactions = getFilteredTransactions(startDate, endDate, null, TransactionType.OUT);
-            return createTransactionExcelReport(transactions, "Stock OUT Report", startDate, endDate);
+            byte[] report = createTransactionExcelReport(transactions, "Stock OUT Report", startDate, endDate);
+            saveReportHistory("Stock OUT Report", "STOCK_OUT", "EXCEL", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating stock-out Excel report", e);
+            saveReportHistory("Stock OUT Report", "STOCK_OUT", "EXCEL", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate stock-out Excel report", e);
         }
     }
@@ -126,9 +168,12 @@ public class ReportService {
     public byte[] generateBalanceReportPdf() {
         try {
             List<StockBalanceDTO> balances = balanceService.getAllBalances();
-            return createBalancePdfReport(balances);
+            byte[] report = createBalancePdfReport(balances);
+            saveReportHistory("Stock Balance Report", "BALANCE", "PDF", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating balance PDF report", e);
+            saveReportHistory("Stock Balance Report", "BALANCE", "PDF", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate balance PDF report", e);
         }
     }
@@ -136,9 +181,12 @@ public class ReportService {
     public byte[] generateBalanceReportExcel() {
         try {
             List<StockBalanceDTO> balances = balanceService.getAllBalances();
-            return createBalanceExcelReport(balances);
+            byte[] report = createBalanceExcelReport(balances);
+            saveReportHistory("Stock Balance Report", "BALANCE", "EXCEL", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating balance Excel report", e);
+            saveReportHistory("Stock Balance Report", "BALANCE", "EXCEL", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate balance Excel report", e);
         }
     }
@@ -148,9 +196,12 @@ public class ReportService {
     public byte[] generateLowStockReportPdf() {
         try {
             List<StockBalanceDTO> lowStockItems = balanceService.getLowStockItems();
-            return createLowStockPdfReport(lowStockItems);
+            byte[] report = createLowStockPdfReport(lowStockItems);
+            saveReportHistory("Low Stock Report", "LOW_STOCK", "PDF", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating low stock PDF report", e);
+            saveReportHistory("Low Stock Report", "LOW_STOCK", "PDF", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate low stock PDF report", e);
         }
     }
@@ -158,9 +209,12 @@ public class ReportService {
     public byte[] generateLowStockReportExcel() {
         try {
             List<StockBalanceDTO> lowStockItems = balanceService.getLowStockItems();
-            return createLowStockExcelReport(lowStockItems);
+            byte[] report = createLowStockExcelReport(lowStockItems);
+            saveReportHistory("Low Stock Report", "LOW_STOCK", "EXCEL", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating low stock Excel report", e);
+            saveReportHistory("Low Stock Report", "LOW_STOCK", "EXCEL", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate low stock Excel report", e);
         }
     }
@@ -170,9 +224,12 @@ public class ReportService {
     public byte[] generateSupplierReportPdf() {
         try {
             List<SupplierDTO> suppliers = supplierService.getAllActiveSuppliers();
-            return createSupplierPdfReport(suppliers);
+            byte[] report = createSupplierPdfReport(suppliers);
+            saveReportHistory("Supplier Report", "SUPPLIER", "PDF", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating supplier PDF report", e);
+            saveReportHistory("Supplier Report", "SUPPLIER", "PDF", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate supplier PDF report", e);
         }
     }
@@ -180,9 +237,12 @@ public class ReportService {
     public byte[] generateSupplierReportExcel() {
         try {
             List<SupplierDTO> suppliers = supplierService.getAllActiveSuppliers();
-            return createSupplierExcelReport(suppliers);
+            byte[] report = createSupplierExcelReport(suppliers);
+            saveReportHistory("Supplier Report", "SUPPLIER", "EXCEL", "READY", report.length);
+            return report;
         } catch (Exception e) {
             log.error("Error generating supplier Excel report", e);
+            saveReportHistory("Supplier Report", "SUPPLIER", "EXCEL", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate supplier Excel report", e);
         }
     }
