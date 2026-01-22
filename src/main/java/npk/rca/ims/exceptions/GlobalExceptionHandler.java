@@ -101,50 +101,24 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle all other exceptions (catch-all)
+     * Handle Generic Exception
      * Returns 500 INTERNAL SERVER ERROR
      *
-     * For unexpected errors
+     * Catches all other unhandled exceptions (like SQL/DB errors)
+     * Security: Does NOT expose internal error details to client
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGenericException(
-            Exception ex) {
+    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        
+        // Log the full error for developers (use SLF4J in real app)
+        ex.printStackTrace();
+
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("timestamp", LocalDateTime.now());
         errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         errorResponse.put("error", "Internal Server Error");
-        errorResponse.put("message", ex.getMessage());  // Show actual message for debugging
-        errorResponse.put("exceptionType", ex.getClass().getSimpleName());
+        errorResponse.put("message", "An unexpected error occurred. Please contact support.");
 
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    /**
-     * ERROR RESPONSE EXAMPLES:
-     *
-     * 1. Resource Not Found (404):
-     * {
-     *   "timestamp": "2024-12-01T10:30:00",
-     *   "status": 404,
-     *   "error": "Not Found",
-     *   "message": "Item not found with id: 999"
-     * }
-     *
-     * 2. Validation Error (400):
-     * {
-     *   "timestamp": "2024-12-01T10:30:00",
-     *   "status": 400,
-     *   "error": "Validation Failed",
-     *   "fieldErrors": {
-     *     "name": "Item name is required",
-     *     "minimumStock": "Minimum stock must be positive"
-     *   }
-     * }
-     *
-     * WHY THIS MATTERS:
-     * - Frontend gets consistent error structure
-     * - Easy to display validation errors on form fields
-     * - Proper HTTP status codes for REST API standards
-     * - Better debugging and logging
-     */
 }

@@ -2,6 +2,7 @@ package npk.rca.ims.controller;
 
 import lombok.RequiredArgsConstructor;
 import npk.rca.ims.dto.AnalyticsSummaryDTO;
+import npk.rca.ims.dto.NotificationDTO;
 import npk.rca.ims.dto.StockMetricsDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.service.AnalyticsService;
@@ -93,5 +94,14 @@ public class DashboardController {
                 .collect(Collectors.toList());
         
         return ResponseEntity.ok(recent);
+    }
+
+    /**
+     * GET /api/dashboard/notifications
+     * Get system notifications (e.g., low stock alerts)
+     */
+    @GetMapping("/notifications")
+    public ResponseEntity<List<NotificationDTO>> getNotifications() {
+        return ResponseEntity.ok(stockService.getNotifications());
     }
 }

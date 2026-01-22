@@ -2,6 +2,7 @@ package npk.rca.ims.controller;
 
 import lombok.RequiredArgsConstructor;
 import npk.rca.ims.dto.StockBalanceDTO;
+import npk.rca.ims.dto.CategoryDistributionDTO;
 import npk.rca.ims.service.ReportService;
 import npk.rca.ims.service.StockTransactionService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -42,6 +43,16 @@ public class ReportController {
     public ResponseEntity<List<StockBalanceDTO>> getLowStockReport() {
         List<StockBalanceDTO> report = transactionService.getLowStockItems();
         return ResponseEntity.ok(report);
+    }
+
+    /**
+     * GET /api/reports/categories
+     * Get category distribution
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryDistributionDTO>> getCategoryDistribution() {
+        List<CategoryDistributionDTO> distribution = reportService.getCategoryDistribution();
+        return ResponseEntity.ok(distribution);
     }
 
     /**

@@ -144,6 +144,16 @@ public class StockTransactionController {
     }
 
     /**
+     * POST /api/transactions/{id}/undo-reverse
+     * Undo a reversed transaction
+     */
+    @PostMapping("/{id}/undo-reverse")
+    public ResponseEntity<StockTransactionDTO> undoReverseTransaction(@PathVariable Long id) {
+        StockTransactionDTO result = transactionService.undoReverseTransaction(id);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
      * TESTING SCENARIOS:
      *
      * Scenario 1: Add stock (IN)

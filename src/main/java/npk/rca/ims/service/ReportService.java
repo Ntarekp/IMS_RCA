@@ -10,7 +10,9 @@ import npk.rca.ims.dto.CategoryDistributionDTO;
 import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.dto.SupplierDTO;
+import npk.rca.ims.model.ReportHistory;
 import npk.rca.ims.model.TransactionType;
+import npk.rca.ims.repository.ReportHistoryRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Font;
@@ -246,6 +248,29 @@ public class ReportService {
             saveReportHistory("Supplier Report", "SUPPLIER", "EXCEL", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate supplier Excel report", e);
         }
+    }
+
+    // ============ ANALYTICS REPORTS ============
+
+    public List<CategoryDistributionDTO> getCategoryDistribution() {
+        List<StockBalanceDTO> balances = balanceService.getAllBalances();
+
+        Map<String, List<StockBalanceDTO>> groupedByCategory = balances.stream()
+                .collect(Collectors.groupingBy(item ->
+                        item.getCategory() != null && !item.getCategory().isEmpty()
+                                ? item.getCategory()
+                                : "Uncategorized"
+                ));
+
+        return groupedByCategory.entrySet().stream()
+                .map(entry -> CategoryDistributionDTO.builder()
+                        .category(entry.getKey())
+                        .itemCount(entry.getValue().size())
+                        .totalStock(entry.getValue().stream()
+                                .mapToLong(StockBalanceDTO::getCurrentBalance)
+                                .sum())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     // ============ HELPER METHODS ============
