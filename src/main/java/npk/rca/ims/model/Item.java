@@ -32,6 +32,12 @@ public class Item {
     private String unit;
 
     /**
+     * Category of the item (e.g., Grains, Vegetables, Dairy)
+     */
+    @Column(length = 50)
+    private String category;
+
+    /**
      * Damaged quantity for this item (e.g., spoiled, broken, unusable)
      * Default is 0. This is updated when damaged stock is recorded.
      */

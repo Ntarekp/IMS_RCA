@@ -150,6 +150,16 @@ public class StockTransactionService {
         // Save transaction
         StockTransaction savedTransaction = transactionRepository.save(transaction);
 
+        // Update damaged quantity if applicable
+        if (transaction.getTransactionType() == TransactionType.OUT && 
+            transaction.getNotes() != null && 
+            (transaction.getNotes().toLowerCase().startsWith("damaged") || 
+             transaction.getNotes().toLowerCase().contains("damage"))) {
+            
+            item.setDamagedQuantity(item.getDamagedQuantity() + transaction.getQuantity());
+            itemRepository.save(item);
+        }
+
         // Calculate the new balance to return in the DTO
         Integer newBalance = calculateBalance(item.getId()); // This will include the newly saved transaction
         

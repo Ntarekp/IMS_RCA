@@ -136,6 +136,7 @@ public class ItemService {
         Item item = new Item();
         item.setName(itemDTO.getName());
         item.setUnit(itemDTO.getUnit());
+        item.setCategory(itemDTO.getCategory());
         item.setMinimumStock(itemDTO.getMinimumStock());
         item.setDescription(itemDTO.getDescription());
         item.setDamagedQuantity(0);
@@ -153,6 +154,7 @@ public class ItemService {
 
         item.setName(itemDTO.getName());
         item.setUnit(itemDTO.getUnit());
+        item.setCategory(itemDTO.getCategory());
         item.setMinimumStock(itemDTO.getMinimumStock());
         item.setDescription(itemDTO.getDescription());
 

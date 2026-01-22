@@ -25,6 +25,8 @@ public class ItemDTO {
     @NotBlank(message = "Unit is required")
     private String unit;
 
+    private String category;
+
     @NotNull(message = "Minimum stock is required")
     @Positive(message = "Minimum stock must be positive")
     private Integer minimumStock;

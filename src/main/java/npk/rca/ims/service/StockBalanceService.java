@@ -43,8 +43,10 @@ public class StockBalanceService {
         dto.setItemId(item.getId());
         dto.setItemName(item.getName());
         dto.setUnit(item.getUnit());
+        dto.setCategory(item.getCategory());
         dto.setTotalIn(in);
         dto.setTotalOut(out);
+        dto.setDamagedQuantity(item.getDamagedQuantity());
         dto.setCurrentBalance(balance);
         dto.setMinimumStock(item.getMinimumStock());
         dto.setIsLowStock(balance < item.getMinimumStock());

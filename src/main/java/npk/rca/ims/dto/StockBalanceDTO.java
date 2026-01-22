@@ -20,12 +20,14 @@ public class StockBalanceDTO {
     private Long itemId;
     private String itemName;
     private String unit;
+    private String category;
 
     /**
      * Stock calculations
      */
     private Integer totalIn;
     private Integer totalOut;
+    private Integer damagedQuantity;
     private Integer currentBalance;
 
     /**

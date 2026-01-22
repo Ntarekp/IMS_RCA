@@ -6,6 +6,7 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import npk.rca.ims.dto.CategoryDistributionDTO;
 import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.dto.SupplierDTO;
