@@ -4,6 +4,7 @@ import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.dto.SupplierDTO;
 import npk.rca.ims.model.TransactionType;
+import npk.rca.ims.repository.ReportHistoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class ReportServiceTest {
 
     @Mock
     private SupplierService supplierService;
+
+    @Mock
+    private ReportHistoryRepository reportHistoryRepository;
 
     @InjectMocks
     private ReportService reportService;

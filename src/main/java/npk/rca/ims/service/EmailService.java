@@ -119,12 +119,12 @@ public class EmailService {
             helper.setText(content, true);
             mailSender.send(message);
 
-            log.info("Password reset email sent successfully to {}", to);
+            log.info("Welcome email sent successfully to {}", to);
 
         } catch (MessagingException e) {
-            log.error("Failed to send password reset email to {}", to, e);
+            log.error("Failed to send welcome email to {}", to, e);
         } catch (Exception e) {
-            log.error("Unexpected error sending password reset email to {}", to, e);
+            log.error("Unexpected error sending welcome email to {}", to, e);
         }
     }
 
