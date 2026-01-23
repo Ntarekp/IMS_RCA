@@ -32,6 +32,10 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,7 +46,8 @@ import java.util.stream.Collectors;
 public class ReportService {
 
     private static final String HEADER_IMAGE_PATH = "static/rca-info.png";
-    private static final String ORGANIZATION_NAME = "RWANDA COOPERATIVES AGENCY (RCA)";
+    private static final String STORAGE_DIR = "reports_storage";
+    private static final String ORGANIZATION_NAME = "RWANDA CODING ACADEMY";
     private static final String DATE_FORMAT = "dd-MM-yyyy";
     private static final String DATETIME_FORMAT = "dd-MM-yyyy HH:mm";
     private static final String DEFAULT_UNIT = "Kg";
@@ -58,7 +63,24 @@ public class ReportService {
         return reportHistoryRepository.findAllByOrderByGeneratedDateDesc();
     }
 
-    private void saveReportHistory(String title, String type, String format, String status, int sizeBytes) {
+    private String saveFileToDisk(byte[] content, String prefix, String extension) {
+        try {
+            Path storagePath = Paths.get(STORAGE_DIR);
+            if (!Files.exists(storagePath)) {
+                Files.createDirectories(storagePath);
+            }
+            
+            String filename = prefix.replaceAll("[^a-zA-Z0-9.-]", "_") + "_" + UUID.randomUUID().toString().substring(0, 8) + "." + extension.toLowerCase();
+            Path filePath = storagePath.resolve(filename);
+            Files.write(filePath, content);
+            return filePath.toString();
+        } catch (IOException e) {
+            log.error("Failed to save report to disk", e);
+            return null;
+        }
+    }
+
+    private void saveReportHistory(String title, String type, String format, String status, int sizeBytes, String filePath) {
         String size;
         if (sizeBytes > 1024 * 1024) {
             size = String.format("%.2f MB", sizeBytes / (1024.0 * 1024.0));
@@ -72,6 +94,7 @@ public class ReportService {
                 .format(format)
                 .status(status)
                 .size(size)
+                .filePath(filePath)
                 .build();
 
         reportHistoryRepository.save(history);
@@ -79,28 +102,44 @@ public class ReportService {
 
     // ============ TRANSACTION REPORTS ============
 
-    public byte[] generateTransactionReportPdf(LocalDate startDate, LocalDate endDate, Long itemId) {
+    public byte[] generateTransactionReportPdf(LocalDate startDate, LocalDate endDate, Long itemId, String title) {
         try {
+            String reportTitle = (title != null && !title.isEmpty()) ? title : "Complete Transaction History";
             List<StockTransactionDTO> transactions = getFilteredTransactions(startDate, endDate, itemId, null);
-            byte[] report = createTransactionPdfReport(transactions, "Complete Transaction History", startDate, endDate);
-            saveReportHistory("Complete Transaction History", "TRANSACTION", "PDF", "READY", report.length);
+            byte[] report = createTransactionPdfReport(transactions, reportTitle, startDate, endDate);
+            
+            String filePath = saveFileToDisk(report, "Transaction_Report", "pdf");
+            saveReportHistory(reportTitle, "TRANSACTION", "PDF", "READY", report.length, filePath);
+            
             return report;
         } catch (Exception e) {
             log.error("Error generating transaction PDF report", e);
-            saveReportHistory("Complete Transaction History", "TRANSACTION", "PDF", "FAILED", 0);
+            saveReportHistory(title != null ? title : "Complete Transaction History", "TRANSACTION", "PDF", "FAILED", 0, null);
             throw new ReportGenerationException("Failed to generate transaction PDF report", e);
         }
     }
 
-    public byte[] generateTransactionReportExcel(LocalDate startDate, LocalDate endDate, Long itemId) {
+    public byte[] generateTransactionReportExcel(LocalDate startDate, LocalDate endDate, Long itemId, String title) {
         try {
+            String reportTitle = (title != null && !title.isEmpty()) ? title : "Complete Transaction History";
             List<StockTransactionDTO> transactions = getFilteredTransactions(startDate, endDate, itemId, null);
-            byte[] report = createTransactionExcelReport(transactions, "Complete Transaction History", startDate, endDate, itemId);
-            saveReportHistory("Complete Transaction History", "TRANSACTION", "EXCEL", "READY", report.length);
+            byte[] report = createTransactionExcelReport(transactions, reportTitle, startDate, endDate, itemId);
+            
+            String filePath = saveFileToDisk(report, "Transaction_Report", "xlsx");
+            saveReportHistory(reportTitle, "TRANSACTION", "EXCEL", "READY", report.length, filePath);
+            
             return report;
         } catch (Exception e) {
             log.error("Error generating transaction Excel report", e);
-            saveReportHistory("Complete Transaction History", "TRANSACTION", "EXCEL", "FAILED", 0);
+            saveReportHistory(title != null ? title : "Complete Transaction History", "TRANSACTION", "EXCEL", "FAILED", 0, null);
+            throw new ReportGenerationException("Failed to generate transaction Excel report", e);
+        }
+    }
+            saveReportHistory(reportTitle, "TRANSACTION", "EXCEL", "READY", report.length);
+            return report;
+        } catch (Exception e) {
+            log.error("Error generating transaction Excel report", e);
+            saveReportHistory(title != null ? title : "Complete Transaction History", "TRANSACTION", "EXCEL", "FAILED", 0);
             throw new ReportGenerationException("Failed to generate transaction Excel report", e);
         }
     }

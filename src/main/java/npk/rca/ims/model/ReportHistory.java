@@ -36,6 +36,9 @@ public class ReportHistory {
     @Column(nullable = false)
     private String size;
 
+    @Column(name = "file_path")
+    private String filePath;
+
     @CreationTimestamp
     private LocalDateTime generatedDate;
 }

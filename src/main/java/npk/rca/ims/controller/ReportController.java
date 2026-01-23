@@ -63,9 +63,10 @@ public class ReportController {
     public ResponseEntity<byte[]> exportPdf(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long itemId) {
+            @RequestParam(required = false) Long itemId,
+            @RequestParam(required = false) String title) {
         try {
-            byte[] pdfContent = reportService.generateTransactionReportPdf(startDate, endDate, itemId);
+            byte[] pdfContent = reportService.generateTransactionReportPdf(startDate, endDate, itemId, title);
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=transaction_report.pdf")
@@ -84,9 +85,10 @@ public class ReportController {
     public ResponseEntity<byte[]> exportExcel(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long itemId) {
+            @RequestParam(required = false) Long itemId,
+            @RequestParam(required = false) String title) {
         try {
-            byte[] excelContent = reportService.generateTransactionReportExcel(startDate, endDate, itemId);
+            byte[] excelContent = reportService.generateTransactionReportExcel(startDate, endDate, itemId, title);
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=transaction_report.xlsx")
