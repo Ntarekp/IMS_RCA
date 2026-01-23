@@ -78,11 +78,7 @@ class StockServiceTest {
         assertNotNull(metrics);
         assertEquals(4, metrics.getTotal(), "Total items should be 4");
         assertEquals(2, metrics.getLowStock(), "Low stock items should be 2 (Item 2 and 4)");
-<<<<<<< Updated upstream
         assertEquals(7, metrics.getDamaged(), "Total Damaged items count from items (5+2)"); // Note: The service sums up item.getDamagedQuantity()
-=======
-        assertEquals(7, metrics.getDamaged(), "Damaged items count should be 7 (5 from Item 3 + 2 from Item 4)");
->>>>>>> Stashed changes
         assertEquals(expectedTransactions, metrics.getThisMonth(), "Transactions count should match");
         
         // Verify damaged change

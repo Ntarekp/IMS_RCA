@@ -10,12 +10,11 @@ import npk.rca.ims.dto.CategoryDistributionDTO;
 import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.dto.SupplierDTO;
-<<<<<<< Updated upstream
-=======
 import npk.rca.ims.exceptions.ReportGenerationException;
->>>>>>> Stashed changes
+import npk.rca.ims.model.Item;
 import npk.rca.ims.model.ReportHistory;
 import npk.rca.ims.model.TransactionType;
+import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.ReportHistoryRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.usermodel.Cell;
@@ -43,6 +42,7 @@ import java.util.stream.Collectors;
 public class ReportService {
 
     private static final String HEADER_IMAGE_PATH = "static/rca-info.png";
+    private static final String ORGANIZATION_NAME = "RWANDA COOPERATIVES AGENCY (RCA)";
     private static final String DATE_FORMAT = "dd-MM-yyyy";
     private static final String DATETIME_FORMAT = "dd-MM-yyyy HH:mm";
     private static final String DEFAULT_UNIT = "Kg";
@@ -52,6 +52,7 @@ public class ReportService {
     private final StockBalanceService balanceService;
     private final SupplierService supplierService;
     private final ReportHistoryRepository reportHistoryRepository;
+    private final ItemRepository itemRepository;
 
     public List<ReportHistory> getReportHistory() {
         return reportHistoryRepository.findAllByOrderByGeneratedDateDesc();
@@ -94,7 +95,7 @@ public class ReportService {
     public byte[] generateTransactionReportExcel(LocalDate startDate, LocalDate endDate, Long itemId) {
         try {
             List<StockTransactionDTO> transactions = getFilteredTransactions(startDate, endDate, itemId, null);
-            byte[] report = createTransactionExcelReport(transactions, "Complete Transaction History", startDate, endDate);
+            byte[] report = createTransactionExcelReport(transactions, "Complete Transaction History", startDate, endDate, itemId);
             saveReportHistory("Complete Transaction History", "TRANSACTION", "EXCEL", "READY", report.length);
             return report;
         } catch (Exception e) {
@@ -132,7 +133,7 @@ public class ReportService {
                         .filter(t -> supplierId.equals(t.getSupplierId()))
                         .collect(Collectors.toList());
             }
-            byte[] report = createTransactionExcelReport(transactions, "Stock IN Report", startDate, endDate);
+            byte[] report = createTransactionExcelReport(transactions, "Stock IN Report", startDate, endDate, null);
             saveReportHistory("Stock IN Report", "STOCK_IN", "EXCEL", "READY", report.length);
             return report;
         } catch (Exception e) {
@@ -160,7 +161,7 @@ public class ReportService {
     public byte[] generateStockOutReportExcel(LocalDate startDate, LocalDate endDate) {
         try {
             List<StockTransactionDTO> transactions = getFilteredTransactions(startDate, endDate, null, TransactionType.OUT);
-            byte[] report = createTransactionExcelReport(transactions, "Stock OUT Report", startDate, endDate);
+            byte[] report = createTransactionExcelReport(transactions, "Stock OUT Report", startDate, endDate, null);
             saveReportHistory("Stock OUT Report", "STOCK_OUT", "EXCEL", "READY", report.length);
             return report;
         } catch (Exception e) {
@@ -328,9 +329,10 @@ public class ReportService {
     }
 
     private PdfPTable createTransactionPdfTable(List<StockTransactionDTO> transactions) throws DocumentException {
-        PdfPTable table = new PdfPTable(10);
+        PdfPTable table = new PdfPTable(9);
         table.setWidthPercentage(100);
-        table.setWidths(new float[]{3, 3, 3, 2, 2, 2, 2, 3, 4, 3});
+        // Date, Ref, Item, Unit, In, Out, Balance, Source/Dest, Remarks
+        table.setWidths(new float[]{3, 3, 4, 2, 2, 2, 2, 4, 4});
 
         addTransactionPdfTableHeader(table);
 
@@ -344,47 +346,63 @@ public class ReportService {
 
     private void addTransactionPdfTableHeader(PdfPTable table) {
         String[] headers = {
-                "Date", "Reference", "Item Name", "Unit", "Type",
-                "Qty", "Balance", "Source/Issued To", "Purpose/Remarks", "Recorded By"
+                "Date", "Ref No.", "Item Name", "Unit",
+                "Stock IN", "Stock OUT", "Balance",
+                "Source / Destination", "Remarks"
         };
 
         for (String header : headers) {
             PdfPCell cell = new PdfPCell(
-                    new Phrase(header, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE))
+                    new Phrase(header, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE))
             );
             cell.setBackgroundColor(Color.DARK_GRAY);
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
             cell.setPadding(5);
             table.addCell(cell);
         }
     }
 
     private void addTransactionPdfDataRow(PdfPTable table, StockTransactionDTO tx, DateTimeFormatter formatter) {
+        // 1. Date
         addCell(table, tx.getTransactionDate().format(formatter));
-        // Use a default value if reference number is null or empty
+        
+        // 2. Reference
         String reference = (tx.getReferenceNumber() != null && !tx.getReferenceNumber().isEmpty()) 
                 ? tx.getReferenceNumber() 
                 : "TX-" + tx.getId();
         addCell(table, reference);
+        
+        // 3. Item Name
         addCell(table, tx.getItemName());
-        addCell(table, DEFAULT_UNIT);
-        addCell(table, tx.getTransactionType().toString());
-        addCell(table, String.valueOf(tx.getQuantity()));
+        
+        // 4. Unit
+        addCell(table, Optional.ofNullable(tx.getUnit()).orElse(DEFAULT_UNIT));
+        
+        // 5. Stock IN & 6. Stock OUT
+        if (tx.getTransactionType() == TransactionType.IN) {
+            addCell(table, String.valueOf(tx.getQuantity())); // IN
+            addCell(table, "-"); // OUT
+        } else {
+            addCell(table, "-"); // IN
+            addCell(table, String.valueOf(tx.getQuantity())); // OUT
+        }
+        
+        // 7. Balance
         addCell(table, String.valueOf(tx.getBalanceAfter()));
         
-        // Logic for Source/Issued To
-        String sourceOrIssuedTo = PLACEHOLDER;
+        // 8. Source / Destination
+        String sourceOrDest = PLACEHOLDER;
         if (tx.getTransactionType() == TransactionType.IN) {
-            sourceOrIssuedTo = Optional.ofNullable(tx.getSupplierName()).orElse("Internal Adjustment");
-        } else if (tx.getTransactionType() == TransactionType.OUT) {
-            // For OUT transactions, we might want to show department or recipient if available in notes
-            // For now, let's use a generic "Issued" or extract from notes if structured
-            sourceOrIssuedTo = "Issued Out"; 
+            sourceOrDest = Optional.ofNullable(tx.getSupplierName()).orElse("Internal Adjustment");
+        } else {
+            // For OUT transactions, try to get recipient from notes, otherwise default
+            sourceOrDest = (tx.getNotes() != null && !tx.getNotes().isEmpty()) ? tx.getNotes() : "Issued Out";
         }
-        addCell(table, sourceOrIssuedTo);
+        addCell(table, sourceOrDest);
         
+        // 9. Remarks
         addCell(table, Optional.ofNullable(tx.getNotes()).orElse(PLACEHOLDER));
-        addCell(table, Optional.ofNullable(tx.getRecordedBy()).orElse(PLACEHOLDER));
     }
 
     // ============ TRANSACTION EXCEL REPORTS ============
@@ -393,7 +411,8 @@ public class ReportService {
             List<StockTransactionDTO> transactions,
             String reportTitle,
             LocalDate startDate,
-            LocalDate endDate
+            LocalDate endDate,
+            Long itemId
     ) throws IOException {
         try (XSSFWorkbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -401,13 +420,28 @@ public class ReportService {
             Sheet sheet = workbook.createSheet("Transactions");
 
             addExcelHeaderImage(workbook, sheet);
-            addExcelTitle(workbook, sheet, reportTitle, 4);
+            addExcelTitle(workbook, sheet, reportTitle, 4); // Writes to 4 and 5
 
-            if (startDate != null && endDate != null) {
-                addExcelDateRange(workbook, sheet, startDate, endDate, 5);
+            int headerRow = 6;
+            
+            // Add Item Details if specific item selected (Stock Card style)
+            if (itemId != null) {
+                Optional<Item> itemOpt = itemRepository.findById(itemId);
+                if (itemOpt.isPresent()) {
+                    addExcelItemDetails(workbook, sheet, itemOpt.get(), headerRow);
+                    headerRow += 4; // Shift down
+                }
             }
 
-            int headerRow = (startDate != null && endDate != null) ? 6 : 5;
+            if (startDate != null && endDate != null) {
+                addExcelDateRange(workbook, sheet, startDate, endDate, headerRow);
+                headerRow += 1;
+            } else {
+                 // If no date range, just add a small spacer or title row if needed.
+                 // Current logic assumes date range usually exists. 
+                 // If not, we just proceed.
+            }
+
             createTransactionExcelHeader(workbook, sheet, headerRow);
 
             if (transactions.isEmpty()) {
@@ -416,19 +450,47 @@ public class ReportService {
                 populateTransactionExcelData(sheet, transactions, headerRow + 1);
             }
 
-            autoSizeColumns(sheet, 10);
+            autoSizeColumns(sheet, 9);
 
             workbook.write(out);
             return out.toByteArray();
         }
     }
 
+    private void addExcelItemDetails(Workbook workbook, Sheet sheet, Item item, int startRow) {
+        CellStyle labelStyle = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        labelStyle.setFont(font);
+
+        // Row 1
+        Row row1 = sheet.createRow(startRow);
+        Cell c1 = row1.createCell(0); c1.setCellValue("Item Name:"); c1.setCellStyle(labelStyle);
+        row1.createCell(1).setCellValue(item.getName());
+        
+        Cell c2 = row1.createCell(3); c2.setCellValue("Category:"); c2.setCellStyle(labelStyle);
+        row1.createCell(4).setCellValue(Optional.ofNullable(item.getCategory()).orElse("-"));
+
+        // Row 2
+        Row row2 = sheet.createRow(startRow + 1);
+        Cell c3 = row2.createCell(0); c3.setCellValue("SKU / ID:"); c3.setCellStyle(labelStyle);
+        row2.createCell(1).setCellValue("ITEM-" + item.getId());
+        
+        Cell c4 = row2.createCell(3); c4.setCellValue("Min Stock:"); c4.setCellStyle(labelStyle);
+        row2.createCell(4).setCellValue(item.getMinimumStock());
+
+        // Row 3
+        Row row3 = sheet.createRow(startRow + 2);
+        Cell c5 = row3.createCell(0); c5.setCellValue("Unit:"); c5.setCellStyle(labelStyle);
+        row3.createCell(1).setCellValue(item.getUnit());
+    }
+
     private void createTransactionExcelHeader(Workbook workbook, Sheet sheet, int rowNum) {
         Row headerRow = sheet.createRow(rowNum);
         String[] headers = {
-                "Date", "Reference", "Item Name", "Unit", "Transaction Type",
-                "Quantity", "Balance After", "Source / Issued To",
-                "Purpose / Remarks", "Recorded By"
+                "Date", "Ref No.", "Item Name", "Unit",
+                "Stock IN", "Stock OUT", "Balance",
+                "Source / Destination", "Remarks"
         };
 
         CellStyle headerStyle = createHeaderCellStyle(workbook);
@@ -447,29 +509,45 @@ public class ReportService {
         for (StockTransactionDTO tx : transactions) {
             Row row = sheet.createRow(rowNum++);
 
+            // 1. Date
             row.createCell(0).setCellValue(tx.getTransactionDate().format(formatter));
             
+            // 2. Reference
             String reference = (tx.getReferenceNumber() != null && !tx.getReferenceNumber().isEmpty()) 
                     ? tx.getReferenceNumber() 
                     : "TX-" + tx.getId();
             row.createCell(1).setCellValue(reference);
             
+            // 3. Item Name
             row.createCell(2).setCellValue(tx.getItemName());
-            row.createCell(3).setCellValue(DEFAULT_UNIT);
-            row.createCell(4).setCellValue(tx.getTransactionType().toString());
-            row.createCell(5).setCellValue(tx.getQuantity());
+            
+            // 4. Unit
+            row.createCell(3).setCellValue(Optional.ofNullable(tx.getUnit()).orElse(DEFAULT_UNIT));
+            
+            // 5. Stock IN & 6. Stock OUT
+            if (tx.getTransactionType() == TransactionType.IN) {
+                row.createCell(4).setCellValue(tx.getQuantity()); // IN
+                row.createCell(5).setCellValue("-"); // OUT
+            } else {
+                row.createCell(4).setCellValue("-"); // IN
+                row.createCell(5).setCellValue(tx.getQuantity()); // OUT
+            }
+            
+            // 7. Balance
             row.createCell(6).setCellValue(tx.getBalanceAfter());
             
-            String sourceOrIssuedTo = PLACEHOLDER;
+            // 8. Source / Destination
+            String sourceOrDest = PLACEHOLDER;
             if (tx.getTransactionType() == TransactionType.IN) {
-                sourceOrIssuedTo = Optional.ofNullable(tx.getSupplierName()).orElse("Internal Adjustment");
-            } else if (tx.getTransactionType() == TransactionType.OUT) {
-                sourceOrIssuedTo = "Issued Out"; 
+                sourceOrDest = Optional.ofNullable(tx.getSupplierName()).orElse("Internal Adjustment");
+            } else {
+                // For OUT transactions, try to get recipient from notes, otherwise default
+                sourceOrDest = (tx.getNotes() != null && !tx.getNotes().isEmpty()) ? tx.getNotes() : "Issued Out";
             }
-            row.createCell(7).setCellValue(sourceOrIssuedTo);
+            row.createCell(7).setCellValue(sourceOrDest);
 
+            // 9. Remarks
             row.createCell(8).setCellValue(Optional.ofNullable(tx.getNotes()).orElse(PLACEHOLDER));
-            row.createCell(9).setCellValue(Optional.ofNullable(tx.getRecordedBy()).orElse(PLACEHOLDER));
         }
     }
 
@@ -515,7 +593,7 @@ public class ReportService {
 
         for (StockBalanceDTO balance : balances) {
             addCell(table, balance.getItemName());
-            addCell(table, DEFAULT_UNIT);
+            addCell(table, Optional.ofNullable(balance.getUnit()).orElse(DEFAULT_UNIT));
             addCell(table, String.valueOf(balance.getCurrentBalance()));
             addCell(table, String.valueOf(balance.getMinimumStock()));
 
@@ -549,7 +627,7 @@ public class ReportService {
                 populateBalanceExcelData(workbook, sheet, balances, 6);
             }
 
-            autoSizeColumns(sheet, 5);
+            autoSizeColumns(sheet, 7);
 
             workbook.write(out);
             return out.toByteArray();
@@ -558,7 +636,7 @@ public class ReportService {
 
     private void createBalanceExcelHeader(Workbook workbook, Sheet sheet, int rowNum) {
         Row headerRow = sheet.createRow(rowNum);
-        String[] headers = {"Item Name", "Unit", "Current Stock", "Minimum Stock", "Status"};
+        String[] headers = {"SKU / ID", "Item Name", "Category", "Unit", "Current Stock", "Minimum Stock", "Status", "Last Updated"};
 
         CellStyle headerStyle = createHeaderCellStyle(workbook);
 
@@ -571,6 +649,7 @@ public class ReportService {
 
     private void populateBalanceExcelData(Workbook workbook, Sheet sheet, List<StockBalanceDTO> balances, int startRow) {
         int rowNum = startRow;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
 
         CellStyle lowStockStyle = workbook.createCellStyle();
         lowStockStyle.setFillForegroundColor(IndexedColors.LIGHT_ORANGE.getIndex());
@@ -583,15 +662,21 @@ public class ReportService {
         for (StockBalanceDTO balance : balances) {
             Row row = sheet.createRow(rowNum++);
 
-            row.createCell(0).setCellValue(balance.getItemName());
-            row.createCell(1).setCellValue(DEFAULT_UNIT);
-            row.createCell(2).setCellValue(balance.getCurrentBalance());
-            row.createCell(3).setCellValue(balance.getMinimumStock());
+            row.createCell(0).setCellValue("ITEM-" + balance.getItemId());
+            row.createCell(1).setCellValue(balance.getItemName());
+            row.createCell(2).setCellValue(Optional.ofNullable(balance.getCategory()).orElse("-"));
+            row.createCell(3).setCellValue(Optional.ofNullable(balance.getUnit()).orElse(DEFAULT_UNIT));
+            row.createCell(4).setCellValue(balance.getCurrentBalance());
+            row.createCell(5).setCellValue(balance.getMinimumStock());
 
             String status = balance.getCurrentBalance() <= balance.getMinimumStock() ? "LOW" : "OK";
-            Cell statusCell = row.createCell(4);
+            Cell statusCell = row.createCell(6);
             statusCell.setCellValue(status);
             statusCell.setCellStyle(status.equals("LOW") ? lowStockStyle : okStyle);
+            
+            row.createCell(7).setCellValue(
+                balance.getLastUpdated() != null ? balance.getLastUpdated().format(formatter) : "-"
+            );
         }
     }
 
@@ -687,9 +772,9 @@ public class ReportService {
             Sheet sheet = workbook.createSheet("Suppliers");
 
             addExcelHeaderImage(workbook, sheet);
-            addExcelTitle(workbook, sheet, "Active Suppliers Report", 4);
+            addExcelTitle(workbook, sheet, "Active Suppliers Report", 4); // Writes to 4 and 5
 
-            Row headerRow = sheet.createRow(5);
+            Row headerRow = sheet.createRow(6); // Moved to 6
             String[] headers = {"Company Name", "Contact Person", "Phone", "Email", "Items Supplied"};
             CellStyle headerStyle = createHeaderCellStyle(workbook);
 
@@ -699,7 +784,7 @@ public class ReportService {
                 cell.setCellStyle(headerStyle);
             }
 
-            int rowNum = 6;
+            int rowNum = 7; // Moved to 7
             for (SupplierDTO supplier : suppliers) {
                 Row row = sheet.createRow(rowNum++);
                 row.createCell(0).setCellValue(supplier.getName());
@@ -727,6 +812,16 @@ public class ReportService {
                 image.setAlignment(Element.ALIGN_CENTER);
                 document.add(image);
             }
+            
+            // Add Organization Name
+            Paragraph orgName = new Paragraph(
+                    ORGANIZATION_NAME,
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, Color.BLACK)
+            );
+            orgName.setAlignment(Element.ALIGN_CENTER);
+            orgName.setSpacingAfter(5);
+            document.add(orgName);
+            
         } catch (Exception e) {
             log.warn("Failed to add header image to PDF", e);
         }
@@ -822,8 +917,20 @@ public class ReportService {
         }
     }
 
-    private void addExcelTitle(Workbook workbook, Sheet sheet, String title, int rowNum) {
-        Row titleRow = sheet.createRow(rowNum);
+    private void addExcelTitle(Workbook workbook, Sheet sheet, String title, int startRow) {
+        // Org Name
+        Row orgRow = sheet.createRow(startRow);
+        Cell orgCell = orgRow.createCell(0);
+        orgCell.setCellValue(ORGANIZATION_NAME);
+        CellStyle orgStyle = workbook.createCellStyle();
+        Font orgFont = workbook.createFont();
+        orgFont.setBold(true);
+        orgFont.setFontHeightInPoints((short) 14);
+        orgStyle.setFont(orgFont);
+        orgCell.setCellStyle(orgStyle);
+
+        // Report Title
+        Row titleRow = sheet.createRow(startRow + 1);
         Cell titleCell = titleRow.createCell(0);
         titleCell.setCellValue(title + " - Generated: " +
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATETIME_FORMAT)));
@@ -831,7 +938,7 @@ public class ReportService {
         CellStyle titleStyle = workbook.createCellStyle();
         Font titleFont = workbook.createFont();
         titleFont.setBold(true);
-        titleFont.setFontHeightInPoints((short) 14);
+        titleFont.setFontHeightInPoints((short) 12);
         titleStyle.setFont(titleFont);
         titleCell.setCellStyle(titleStyle);
     }

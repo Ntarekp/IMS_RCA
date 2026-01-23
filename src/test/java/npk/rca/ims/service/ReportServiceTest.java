@@ -4,7 +4,9 @@ import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.dto.SupplierDTO;
 import npk.rca.ims.model.TransactionType;
+import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.ReportHistoryRepository;
+import npk.rca.ims.model.Item;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,9 @@ class ReportServiceTest {
     @Mock
     private ReportHistoryRepository reportHistoryRepository;
 
+    @Mock
+    private ItemRepository itemRepository;
+
     @InjectMocks
     private ReportService reportService;
 
@@ -51,6 +56,7 @@ class ReportServiceTest {
         testTransaction.setId(1L);
         testTransaction.setItemId(1L);
         testTransaction.setItemName("Test Item");
+        testTransaction.setUnit("Kg");
         testTransaction.setTransactionType(TransactionType.IN);
         testTransaction.setQuantity(100);
         testTransaction.setTransactionDate(LocalDate.now());
@@ -62,6 +68,7 @@ class ReportServiceTest {
         testBalance = new StockBalanceDTO();
         testBalance.setItemId(1L);
         testBalance.setItemName("Test Item");
+        testBalance.setUnit("Kg");
         testBalance.setCurrentBalance(100);
         testBalance.setMinimumStock(10);
         testBalance.setIsLowStock(false);
@@ -88,6 +95,24 @@ class ReportServiceTest {
         when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransaction));
 
         byte[] result = reportService.generateTransactionReportExcel(null, null, null);
+
+        assertNotNull(result);
+        assertTrue(result.length > 0);
+    }
+
+    @Test
+    @DisplayName("Should generate transaction report Excel with Item Details (Stock Card)")
+    void generateTransactionReportExcel_WithItemDetails_ShouldReturnExcelBytes() {
+        when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransaction));
+        
+        Item mockItem = new Item();
+        mockItem.setId(1L);
+        mockItem.setName("Test Item");
+        mockItem.setUnit("Kg");
+        mockItem.setMinimumStock(10);
+        when(itemRepository.findById(1L)).thenReturn(java.util.Optional.of(mockItem));
+
+        byte[] result = reportService.generateTransactionReportExcel(null, null, 1L);
 
         assertNotNull(result);
         assertTrue(result.length > 0);
