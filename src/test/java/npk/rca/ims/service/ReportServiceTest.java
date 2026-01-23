@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class ReportServiceTest {
@@ -83,10 +84,12 @@ class ReportServiceTest {
     void generateTransactionReportPdf_ShouldReturnPdfBytes() {
         when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransaction));
 
-        byte[] result = reportService.generateTransactionReportPdf(null, null, null);
+        byte[] result = reportService.generateTransactionReportPdf(null, null, null, null);
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        // Verify history is saved
+        verify(reportHistoryRepository).save(any());
     }
 
     @Test
@@ -94,10 +97,11 @@ class ReportServiceTest {
     void generateTransactionReportExcel_ShouldReturnExcelBytes() {
         when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransaction));
 
-        byte[] result = reportService.generateTransactionReportExcel(null, null, null);
+        byte[] result = reportService.generateTransactionReportExcel(null, null, null, null);
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
 
     @Test
@@ -112,10 +116,24 @@ class ReportServiceTest {
         mockItem.setMinimumStock(10);
         when(itemRepository.findById(1L)).thenReturn(java.util.Optional.of(mockItem));
 
-        byte[] result = reportService.generateTransactionReportExcel(null, null, 1L);
+        byte[] result = reportService.generateTransactionReportExcel(null, null, 1L, null);
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("Should generate transaction report PDF with custom title")
+    void generateTransactionReportPdf_WithCustomTitle_ShouldReturnPdfBytes() {
+        when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransaction));
+
+        String customTitle = "Custom Report Title";
+        byte[] result = reportService.generateTransactionReportPdf(null, null, null, customTitle);
+
+        assertNotNull(result);
+        assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
 
     @Test
@@ -127,6 +145,7 @@ class ReportServiceTest {
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
 
     @Test
@@ -139,6 +158,7 @@ class ReportServiceTest {
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
 
     @Test
@@ -150,6 +170,7 @@ class ReportServiceTest {
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
 
     @Test
@@ -161,6 +182,7 @@ class ReportServiceTest {
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
 
     @Test
@@ -173,6 +195,7 @@ class ReportServiceTest {
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
 
     @Test
@@ -184,6 +207,7 @@ class ReportServiceTest {
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
 
     @Test
@@ -195,6 +219,7 @@ class ReportServiceTest {
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
     
     @Test
@@ -202,9 +227,10 @@ class ReportServiceTest {
     void generateTransactionReportPdf_ShouldHandleEmptyData() {
         when(transactionService.getAllTransactions()).thenReturn(Collections.emptyList());
 
-        byte[] result = reportService.generateTransactionReportPdf(null, null, null);
+        byte[] result = reportService.generateTransactionReportPdf(null, null, null, null);
 
         assertNotNull(result);
         assertTrue(result.length > 0);
+        verify(reportHistoryRepository).save(any());
     }
 }
