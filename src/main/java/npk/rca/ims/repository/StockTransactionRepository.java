@@ -43,4 +43,13 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
 
     @Query("SELECT t FROM StockTransaction t WHERE t.transactionType = 'OUT'")
     List<StockTransaction> findAllOutTransactions();
+
+    @Query("SELECT COALESCE(SUM(t.quantity), 0) FROM StockTransaction t " +
+            "WHERE t.transactionType = 'OUT' " +
+            "AND (LOWER(t.notes) LIKE '%damage%' OR LOWER(t.notes) LIKE '%damaged%') " +
+            "AND t.transactionDate BETWEEN :startDate AND :endDate")
+    Integer getDamagedQuantityBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT t FROM StockTransaction t WHERE t.originalTransaction.id = :originalId")
+    StockTransaction findReversalTransaction(@Param("originalId") Long originalId);
 }

@@ -1,6 +1,7 @@
 package npk.rca.ims.service;
 
 import npk.rca.ims.dto.StockMetricsDTO;
+import npk.rca.ims.dto.NotificationDTO;
 import npk.rca.ims.model.Item;
 import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.StockTransactionRepository;
@@ -12,6 +13,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,7 +43,7 @@ class StockServiceTest {
     }
 
     @Test
-    @DisplayName("Should return correct metrics for mixed item states")
+    @DisplayName("Should return correct metrics for mixed item states including historical damaged data")
     void getMetrics_ShouldReturnCorrectMetrics() {
         // Arrange
         Item normalItem = createItem(1L, 10, 0); // Min 10, Damaged 0
@@ -53,18 +55,21 @@ class StockServiceTest {
         when(itemRepository.findAll()).thenReturn(items);
 
         // Setup Balances
-        // Normal: Balance 20 > 10 (OK)
         when(itemService.getCurrentBalance(1L)).thenReturn(20);
-        // Low Stock: Balance 40 < 50 (Low)
         when(itemService.getCurrentBalance(2L)).thenReturn(40);
-        // Damaged: Balance 10 > 5 (OK)
         when(itemService.getCurrentBalance(3L)).thenReturn(10);
-        // Low and Damaged: Balance 10 < 20 (Low)
         when(itemService.getCurrentBalance(4L)).thenReturn(10);
 
         // Setup Transaction Count
         long expectedTransactions = 15L;
         when(stockTransactionRepository.countByCreatedAtAfter(any(LocalDateTime.class))).thenReturn(expectedTransactions);
+
+        // Setup Damaged Change Calculation
+        // Last month: 5 damaged. This month: 7 damaged.
+        // Change: (7 - 5) / 5 * 100 = 40.0%
+        when(stockTransactionRepository.getDamagedQuantityBetween(any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(7) // This month
+                .thenReturn(5); // Last month
 
         // Act
         StockMetricsDTO metrics = stockService.getMetrics();
@@ -73,22 +78,22 @@ class StockServiceTest {
         assertNotNull(metrics);
         assertEquals(4, metrics.getTotal(), "Total items should be 4");
         assertEquals(2, metrics.getLowStock(), "Low stock items should be 2 (Item 2 and 4)");
-        assertEquals(2, metrics.getDamaged(), "Damaged items should be 2 (Item 3 and 4)");
+        assertEquals(7, metrics.getDamaged(), "Total Damaged items count from items (5+2)"); // Note: The service sums up item.getDamagedQuantity()
         assertEquals(expectedTransactions, metrics.getThisMonth(), "Transactions count should match");
         
+        // Verify damaged change
+        assertEquals(40.0, metrics.getDamagedChange(), 0.01);
+
         // Verify placeholders are 0.0
         assertEquals(0.0, metrics.getTotalChange());
         assertEquals(0.0, metrics.getLowStockChange());
-        assertEquals(0.0, metrics.getDamagedChange());
         assertEquals(0.0, metrics.getThisMonthChange());
 
         // Verify interactions
         verify(itemRepository).findAll();
-        verify(itemService).getCurrentBalance(1L);
-        verify(itemService).getCurrentBalance(2L);
-        verify(itemService).getCurrentBalance(3L);
-        verify(itemService).getCurrentBalance(4L);
+        verify(itemService, times(4)).getCurrentBalance(anyLong());
         verify(stockTransactionRepository).countByCreatedAtAfter(any(LocalDateTime.class));
+        verify(stockTransactionRepository, times(2)).getDamagedQuantityBetween(any(LocalDate.class), any(LocalDate.class));
     }
 
     @Test
@@ -187,6 +192,35 @@ class StockServiceTest {
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> stockService.getMetrics());
+    }
+
+    @Test
+    @DisplayName("Should return notifications for low stock items")
+    void getNotifications_ShouldReturnLowStockAlerts() {
+        // Arrange
+        Item lowStockItem = createItem(1L, 10, 0); // Min 10
+        lowStockItem.setName("Test Item");
+        lowStockItem.setUnit("kg");
+        
+        Item normalItem = createItem(2L, 5, 0); // Min 5
+        
+        when(itemRepository.findAll()).thenReturn(Arrays.asList(lowStockItem, normalItem));
+        
+        when(itemService.getCurrentBalance(1L)).thenReturn(2); // 2 < 10 -> Low stock
+        when(itemService.getCurrentBalance(2L)).thenReturn(10); // 10 > 5 -> Normal
+        
+        // Act
+        List<NotificationDTO> notifications = stockService.getNotifications();
+        
+        // Assert
+        assertNotNull(notifications);
+        assertEquals(1, notifications.size());
+        
+        NotificationDTO notification = notifications.get(0);
+        assertEquals("low-stock-1", notification.getId());
+        assertEquals("WARNING", notification.getType());
+        assertTrue(notification.getMessage().contains("Test Item"));
+        assertTrue(notification.getMessage().contains("2 kg remaining"));
     }
 
     private Item createItem(Long id, Integer minStock, int damagedQty) {

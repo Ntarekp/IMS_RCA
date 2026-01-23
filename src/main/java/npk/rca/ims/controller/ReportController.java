@@ -2,6 +2,8 @@ package npk.rca.ims.controller;
 
 import lombok.RequiredArgsConstructor;
 import npk.rca.ims.dto.StockBalanceDTO;
+import npk.rca.ims.dto.CategoryDistributionDTO;
+import npk.rca.ims.model.ReportHistory;
 import npk.rca.ims.service.ReportService;
 import npk.rca.ims.service.StockTransactionService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -32,6 +34,30 @@ public class ReportController {
     public ResponseEntity<List<StockBalanceDTO>> getBalanceReport() {
         List<StockBalanceDTO> report = transactionService.generateBalanceReport();
         return ResponseEntity.ok(report);
+        @GetMapping("/download/{id}")
+    public ResponseEntity<byte[]> downloadReport(@PathVariable Long id) {
+        try {
+            ReportHistory history = reportService.getReportHistoryById(id);
+            byte[] content = reportService.getReportFileContent(id);
+            
+            String filename = history.getTitle().replaceAll("[^a-zA-Z0-9.-]", "_") + "_" + id;
+            MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            
+            if ("PDF".equalsIgnoreCase(history.getFormat())) {
+                filename += ".pdf";
+                mediaType = MediaType.APPLICATION_PDF;
+            } else if ("EXCEL".equalsIgnoreCase(history.getFormat()) || "CSV".equalsIgnoreCase(history.getFormat())) {
+                filename += ".xlsx";
+                mediaType = MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            }
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(mediaType)
+                    .body(content);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /**
@@ -45,6 +71,16 @@ public class ReportController {
     }
 
     /**
+     * GET /api/reports/categories
+     * Get category distribution
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryDistributionDTO>> getCategoryDistribution() {
+        List<CategoryDistributionDTO> distribution = reportService.getCategoryDistribution();
+        return ResponseEntity.ok(distribution);
+    }
+
+    /**
      * GET /api/reports/export/pdf
      * Export full transaction history as PDF
      */
@@ -52,9 +88,10 @@ public class ReportController {
     public ResponseEntity<byte[]> exportPdf(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long itemId) {
+            @RequestParam(required = false) Long itemId,
+            @RequestParam(required = false) String title) {
         try {
-            byte[] pdfContent = reportService.generateTransactionReportPdf(startDate, endDate, itemId);
+            byte[] pdfContent = reportService.generateTransactionReportPdf(startDate, endDate, itemId, title);
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=transaction_report.pdf")
@@ -73,9 +110,10 @@ public class ReportController {
     public ResponseEntity<byte[]> exportExcel(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long itemId) {
+            @RequestParam(required = false) Long itemId,
+            @RequestParam(required = false) String title) {
         try {
-            byte[] excelContent = reportService.generateTransactionReportExcel(startDate, endDate, itemId);
+            byte[] excelContent = reportService.generateTransactionReportExcel(startDate, endDate, itemId, title);
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=transaction_report.xlsx")

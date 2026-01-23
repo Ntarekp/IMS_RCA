@@ -3,6 +3,7 @@ package npk.rca.ims.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 /**
  * StockBalanceDTO - Report data for current stock levels
@@ -21,6 +22,7 @@ public class StockBalanceDTO {
     private String itemName;
     private String unit;
     private String category;
+    private LocalDateTime lastUpdated;
 
     /**
      * Stock calculations

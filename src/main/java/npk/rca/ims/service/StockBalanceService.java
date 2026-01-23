@@ -44,6 +44,7 @@ public class StockBalanceService {
         dto.setItemName(item.getName());
         dto.setUnit(item.getUnit());
         dto.setCategory(item.getCategory());
+        dto.setLastUpdated(item.getUpdatedAt());
         dto.setTotalIn(in);
         dto.setTotalOut(out);
         dto.setDamagedQuantity(item.getDamagedQuantity());

@@ -1,6 +1,6 @@
 package npk.rca.ims.service;
 
-import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +12,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Properties;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -21,15 +23,20 @@ class EmailServiceTest {
     @Mock
     private JavaMailSender mailSender;
 
+    @Mock
+    private StockBalanceService stockBalanceService;
+
     @InjectMocks
     private EmailService emailService;
 
-    @Mock
     private MimeMessage mimeMessage;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(emailService, "fromEmail", "noreply@rca-ims.com");
+        ReflectionTestUtils.setField(emailService, "frontendUrl", "http://localhost:3000");
+        // Create a real MimeMessage with a default session
+        mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()));
     }
 
     @Test
