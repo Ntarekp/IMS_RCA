@@ -12,6 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import npk.rca.ims.model.ScheduledReportConfig;
+import npk.rca.ims.repository.ScheduledReportConfigRepository;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -25,6 +28,7 @@ public class ReportController {
 
     private final StockTransactionService transactionService;
     private final ReportService reportService;
+    private final ScheduledReportConfigRepository scheduledReportConfigRepository;
 
     /**
      * GET /api/reports/balance
@@ -34,7 +38,32 @@ public class ReportController {
     public ResponseEntity<List<StockBalanceDTO>> getBalanceReport() {
         List<StockBalanceDTO> report = transactionService.generateBalanceReport();
         return ResponseEntity.ok(report);
-        @GetMapping("/download/{id}")
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<ReportHistory>> getReportHistory() {
+        List<ReportHistory> history = reportService.getReportHistory();
+        return ResponseEntity.ok(history);
+    }
+
+    @PostMapping("/schedule")
+    public ResponseEntity<ScheduledReportConfig> scheduleReport(@RequestBody ScheduledReportConfig config) {
+        config.setActive(true);
+        return ResponseEntity.ok(scheduledReportConfigRepository.save(config));
+    }
+
+    @GetMapping("/schedule")
+    public ResponseEntity<List<ScheduledReportConfig>> getScheduledReports() {
+        return ResponseEntity.ok(scheduledReportConfigRepository.findAll());
+    }
+
+    @DeleteMapping("/schedule/{id}")
+    public ResponseEntity<Void> deleteScheduledReport(@PathVariable Long id) {
+        scheduledReportConfigRepository.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/download/{id}")
     public ResponseEntity<byte[]> downloadReport(@PathVariable Long id) {
         try {
             ReportHistory history = reportService.getReportHistoryById(id);

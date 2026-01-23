@@ -12,8 +12,14 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import jakarta.mail.util.ByteArrayDataSource;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.FileSystemResource;
+
+import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +37,31 @@ public class EmailService {
 
     @Value("${app.admin.default-email:ntarekayitare@gmail.com}")
     private String adminEmail;
+
+    @Async
+    public void sendReportEmailWithAttachment(String to, String subject, String body, Map<String, File> attachments) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body, true); // true for HTML
+
+            if (attachments != null) {
+                for (Map.Entry<String, File> entry : attachments.entrySet()) {
+                    FileSystemResource file = new FileSystemResource(entry.getValue());
+                    helper.addAttachment(entry.getKey(), file);
+                }
+            }
+
+            mailSender.send(message);
+            log.info("Report email sent to {}", to);
+        } catch (MessagingException e) {
+            log.error("Failed to send report email to {}", to, e);
+        }
+    }
 
     @Async
     public void sendPasswordResetEmail(String to, String token) {
@@ -97,7 +128,7 @@ public class EmailService {
                             </p>
 
                             <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 6px; padding: 16px; margin-top: 24px;">
-                                <p style="color: #dc2626; font-size: 13px; margin: 0; line-height: 1.5;">
+                                <p style="color: #a3441fef; font-size: 13px; margin: 0; line-height: 1.5;">
                                     <strong>⚠️ Security Notice:</strong> This link will expire in 15 minutes.
                                 </p>
                             </div>
