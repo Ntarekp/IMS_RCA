@@ -199,6 +199,91 @@ class StockTransactionServiceTest {
         assertEquals(100, result.get(0).getTotalIn());
         assertEquals(20, result.get(0).getTotalOut());
     }
+
+    @Test
+    @DisplayName("Should update critical fields successfully when stock is sufficient")
+    void updateTransaction_ShouldUpdateCriticalFields_WhenStockIsSufficient() {
+        // Setup: Original was IN 100. New is IN 80.
+        // Balance Effect: 100 -> 80. Net change -20.
+        // Current Balance (DB) is 100.
+        // Projected: 100 - 100 + 80 = 80. Safe.
+        
+        StockTransactionDTO updateDTO = new StockTransactionDTO();
+        updateDTO.setItemId(1L);
+        updateDTO.setTransactionType(TransactionType.IN);
+        updateDTO.setQuantity(80); // Reduced by 20
+        updateDTO.setNotes("Updated quantity");
+        
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(testTransactionIn));
+        when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
+        when(transactionRepository.save(any(StockTransaction.class))).thenReturn(testTransactionIn);
+        // calculateBalance is called at the end
+        when(transactionRepository.getTotalInByItemId(1L)).thenReturn(80);
+        when(transactionRepository.getTotalOutByItemId(1L)).thenReturn(0);
+
+        StockTransactionDTO result = stockTransactionService.updateTransaction(1L, updateDTO);
+
+        assertNotNull(result);
+        verify(transactionRepository).save(any(StockTransaction.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when update results in negative stock")
+    void updateTransaction_ShouldThrowException_WhenStockIsInsufficient() {
+        // Setup: Original was IN 100.
+        // Current Balance (DB) is 50 (so 50 was used elsewhere).
+        // Update to: IN 20.
+        // Projected: 50 - 100 + 20 = -30. INVALID.
+        
+        StockTransactionDTO updateDTO = new StockTransactionDTO();
+        updateDTO.setItemId(1L);
+        updateDTO.setTransactionType(TransactionType.IN);
+        updateDTO.setQuantity(20); // Reduced by 80
+        
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(testTransactionIn));
+        when(itemRepository.findById(1L)).thenReturn(Optional.of(testItem));
+        
+        // Mocking balance check inside updateTransaction
+        when(transactionRepository.getTotalInByItemId(1L)).thenReturn(100);
+        when(transactionRepository.getTotalOutByItemId(1L)).thenReturn(50); // 50 consumed
+        
+        assertThrows(IllegalArgumentException.class, () -> 
+            stockTransactionService.updateTransaction(1L, updateDTO));
+            
+        verify(transactionRepository, never()).save(any(StockTransaction.class));
+    }
+    
+    @Test
+    @DisplayName("Should throw exception when changing item results in negative stock for new item")
+    void updateTransaction_ShouldThrowException_WhenNewItemHasInsufficientStock() {
+        // Setup: Change Item A to Item B.
+        // Item B has balance 0.
+        // New Transaction is OUT 10.
+        // Projected Item B: 0 + (-10) = -10. INVALID.
+        
+        Item newItem = new Item();
+        newItem.setId(2L);
+        newItem.setName("New Item");
+        
+        StockTransactionDTO updateDTO = new StockTransactionDTO();
+        updateDTO.setItemId(2L); // Switching to Item 2
+        updateDTO.setTransactionType(TransactionType.OUT);
+        updateDTO.setQuantity(10);
+        
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(testTransactionIn)); // Original was IN 100 for Item 1
+        when(itemRepository.findById(2L)).thenReturn(Optional.of(newItem));
+        
+        // Mock balance for Item 1 (Original Item) - Required because updateTransaction checks it first
+        when(transactionRepository.getTotalInByItemId(1L)).thenReturn(100);
+        when(transactionRepository.getTotalOutByItemId(1L)).thenReturn(0);
+
+        // Mock balance for Item 2
+        when(transactionRepository.getTotalInByItemId(2L)).thenReturn(0);
+        when(transactionRepository.getTotalOutByItemId(2L)).thenReturn(0);
+        
+        assertThrows(IllegalArgumentException.class, () -> 
+            stockTransactionService.updateTransaction(1L, updateDTO));
+    }
     
     @Test
     @DisplayName("Should return only low stock items")

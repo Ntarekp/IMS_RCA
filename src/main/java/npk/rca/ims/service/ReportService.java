@@ -389,7 +389,8 @@ public class ReportService {
     ) throws DocumentException, IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4.rotate());
-            PdfWriter.getInstance(document, out);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            writer.setPageEvent(new PageNumberFooter());
             document.open();
 
             addHeaderImage(document);
@@ -638,7 +639,8 @@ public class ReportService {
     private byte[] createBalancePdfReport(List<StockBalanceDTO> balances) throws DocumentException, IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, out);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            writer.setPageEvent(new PageNumberFooter());
             document.open();
 
             addHeaderImage(document);
@@ -767,30 +769,18 @@ public class ReportService {
     private byte[] createLowStockPdfReport(List<StockBalanceDTO> lowStockItems) throws DocumentException, IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, out);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            writer.setPageEvent(new PageNumberFooter());
             document.open();
 
             addHeaderImage(document);
-            addTitle(document, "Low Stock Alert Report");
+            addTitle(document, "Low Stock Report");
             addTimestamp(document);
 
-            Paragraph warning = new Paragraph(
-                    "Items below minimum stock threshold requiring immediate attention",
-                    FontFactory.getFont(FontFactory.HELVETICA, 12, Color.RED)
-            );
-            warning.setAlignment(Element.ALIGN_CENTER);
-            warning.setSpacingAfter(15);
-            document.add(warning);
-
             if (lowStockItems.isEmpty()) {
-                Paragraph message = new Paragraph(
-                        "No low stock items found. All items are above minimum threshold.",
-                        FontFactory.getFont(FontFactory.HELVETICA, 12, Color.GREEN)
-                );
-                message.setAlignment(Element.ALIGN_CENTER);
-                document.add(message);
+                addNoDataMessage(document);
             } else {
-                PdfPTable table = createBalancePdfTable(lowStockItems);
+                PdfPTable table = createBalancePdfTable(lowStockItems); // Reuse balance table
                 document.add(table);
             }
 
@@ -808,43 +798,49 @@ public class ReportService {
     private byte[] createSupplierPdfReport(List<SupplierDTO> suppliers) throws DocumentException, IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, out);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            writer.setPageEvent(new PageNumberFooter());
             document.open();
 
             addHeaderImage(document);
-            addTitle(document, "Active Suppliers Report");
+            addTitle(document, "Supplier List Report");
             addTimestamp(document);
 
             if (suppliers.isEmpty()) {
                 addNoDataMessage(document);
             } else {
-                PdfPTable table = new PdfPTable(4);
-                table.setWidthPercentage(100);
-                table.setWidths(new float[]{3, 3, 3, 4});
-
-                String[] headers = {"Company Name", "Contact Person", "Phone", "Email"};
-                for (String header : headers) {
-                    PdfPCell cell = new PdfPCell(
-                            new Phrase(header, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE))
-                    );
-                    cell.setBackgroundColor(Color.DARK_GRAY);
-                    cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                    cell.setPadding(5);
-                    table.addCell(cell);
-                }
-
-                for (SupplierDTO supplier : suppliers) {
-                    addCell(table, supplier.getName());
-                    addCell(table, supplier.getContactPerson());
-                    addCell(table, supplier.getPhone());
-                    addCell(table, supplier.getEmail());
-                }
+                PdfPTable table = createSupplierPdfTable(suppliers);
                 document.add(table);
             }
 
             document.close();
             return out.toByteArray();
         }
+    }
+
+    private PdfPTable createSupplierPdfTable(List<SupplierDTO> suppliers) throws DocumentException {
+        PdfPTable table = new PdfPTable(4);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{3, 3, 3, 4});
+
+        String[] headers = {"Company Name", "Contact Person", "Phone", "Email"};
+        for (String header : headers) {
+            PdfPCell cell = new PdfPCell(
+                    new Phrase(header, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE))
+            );
+            cell.setBackgroundColor(Color.DARK_GRAY);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setPadding(5);
+            table.addCell(cell);
+        }
+
+        for (SupplierDTO supplier : suppliers) {
+            addCell(table, supplier.getName());
+            addCell(table, supplier.getContactPerson());
+            addCell(table, supplier.getPhone());
+            addCell(table, supplier.getEmail());
+        }
+        return table;
     }
 
     private byte[] createSupplierExcelReport(List<SupplierDTO> suppliers) throws IOException {
@@ -1079,6 +1075,35 @@ public class ReportService {
     public static class ReportGenerationException extends RuntimeException {
         public ReportGenerationException(String message, Throwable cause) {
             super(message, cause);
+        }
+    }
+
+    class PageNumberFooter extends com.lowagie.text.pdf.PdfPageEventHelper {
+        @Override
+        public void onEndPage(com.lowagie.text.pdf.PdfWriter writer, Document document) {
+            com.lowagie.text.pdf.PdfContentByte cb = writer.getDirectContent();
+            String pageText = "Page " + writer.getPageNumber();
+            
+            try {
+                com.lowagie.text.pdf.BaseFont bf = com.lowagie.text.pdf.BaseFont.createFont(
+                    com.lowagie.text.pdf.BaseFont.HELVETICA, 
+                    com.lowagie.text.pdf.BaseFont.CP1252, 
+                    com.lowagie.text.pdf.BaseFont.NOT_EMBEDDED
+                );
+                
+                float width = bf.getWidthPoint(pageText, 10);
+                float x = (document.right() + document.left()) / 2 - (width / 2);
+                float y = document.bottom() - 20;
+                
+                cb.beginText();
+                cb.setFontAndSize(bf, 10);
+                cb.setTextMatrix(x, y);
+                cb.showText(pageText);
+                cb.endText();
+                
+            } catch (Exception e) {
+                // Ignore font errors
+            }
         }
     }
 }
