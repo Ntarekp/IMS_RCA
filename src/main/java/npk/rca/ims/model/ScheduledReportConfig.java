@@ -34,8 +34,14 @@ public class ScheduledReportConfig {
     
     private boolean active;
 
+    @Column(name = "scheduled_time")
+    private java.time.LocalTime scheduledTime;
+    
+    @Column(name = "interval_hours")
+    private Integer intervalHours;
+
     public enum ReportFrequency {
-        DAILY, WEEKLY, MONTHLY
+        DAILY, WEEKLY, MONTHLY, INTERVAL
     }
 
     public enum ScheduledReportType {

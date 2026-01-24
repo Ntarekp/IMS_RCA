@@ -30,17 +30,22 @@ public class ScheduledReportService {
     private final ReportService reportService;
     private final EmailService emailService;
 
-    @Scheduled(cron = "0 0 8 * * *") // Run every day at 8 AM
+    @Scheduled(cron = "0 * * * * *") // Run every minute to be responsive
     public void processScheduledReports() {
-        log.info("Starting scheduled report processing...");
+        log.info("Starting scheduled report processing check...");
         List<ScheduledReportConfig> configs = configRepository.findByActiveTrue();
+        log.info("Found {} active scheduled report configs", configs.size());
         
         for (ScheduledReportConfig config : configs) {
             try {
-                if (isReportDue(config)) {
+                if (shouldSendReport(config)) {
+                    log.info("Sending scheduled report for config ID: {}", config.getId());
                     generateAndSendReport(config);
                     config.setLastSent(LocalDateTime.now());
                     configRepository.save(config);
+                    log.info("Successfully sent and updated report for config ID: {}", config.getId());
+                } else {
+                    log.debug("Skipping report for config ID: {} - Not due yet", config.getId());
                 }
             } catch (Exception e) {
                 log.error("Failed to process scheduled report for config ID: {}", config.getId(), e);
@@ -49,25 +54,75 @@ public class ScheduledReportService {
         log.info("Scheduled report processing completed.");
     }
 
-    private boolean isReportDue(ScheduledReportConfig config) {
-        if (config.getLastSent() == null) return true;
-        
+    private boolean shouldSendReport(ScheduledReportConfig config) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime lastSent = config.getLastSent();
         
-        return switch (config.getFrequency()) {
-            case DAILY -> lastSent.plusDays(1).isBefore(now);
-            case WEEKLY -> lastSent.plusWeeks(1).isBefore(now);
-            case MONTHLY -> lastSent.plusMonths(1).isBefore(now);
-        };
+        // Handle INTERVAL frequency separately
+        if (config.getFrequency() == ScheduledReportConfig.ReportFrequency.INTERVAL) {
+            if (config.getLastSent() == null) {
+                log.info("Interval report (ID: {}) ready: First run", config.getId());
+                return true;
+            }
+            
+            // Default to 24 hours if not specified
+            int intervalHours = config.getIntervalHours() != null ? config.getIntervalHours() : 24;
+            long hoursSinceLast = java.time.Duration.between(config.getLastSent(), now).toHours();
+            
+            boolean ready = hoursSinceLast >= intervalHours;
+            if (ready) {
+                log.info("Interval report (ID: {}) ready: {} hours passed (interval: {})", config.getId(), hoursSinceLast, intervalHours);
+            }
+            return ready;
+        }
+
+        // For other frequencies, check time preference (Hour precision)
+        int scheduledHour = config.getScheduledTime() != null ? config.getScheduledTime().getHour() : 8;
+        if (now.getHour() != scheduledHour) {
+            // log.debug("Report (ID: {}) not ready: Current hour {} != Scheduled hour {}", config.getId(), now.getHour(), scheduledHour);
+            return false;
+        }
+
+        // Check if already sent recently based on frequency
+        if (config.getLastSent() == null) {
+            log.info("Report (ID: {}) ready: First run for non-interval", config.getId());
+            return true;
+        }
+        
+        LocalDateTime lastSent = config.getLastSent();
+        boolean ready = false;
+        
+        switch (config.getFrequency()) {
+            case DAILY:
+                ready = !lastSent.toLocalDate().isEqual(now.toLocalDate());
+                break;
+            case WEEKLY:
+                ready = lastSent.plusDays(6).isBefore(now);
+                break;
+            case MONTHLY:
+                ready = lastSent.plusDays(25).isBefore(now);
+                break;
+            case INTERVAL:
+                ready = true; // Should be handled above
+                break;
+        }
+        
+        if (ready) {
+            log.info("Report (ID: {}) ready: Frequency check passed for {}", config.getId(), config.getFrequency());
+        }
+        
+        return ready;
     }
 
     private void generateAndSendReport(ScheduledReportConfig config) throws IOException {
         LocalDate end = LocalDate.now();
-        LocalDate start = calculateStartDate(config.getFrequency(), end);
+        LocalDate start = calculateStartDate(config, end);
         
         Map<String, File> attachments = new HashMap<>();
         String subject = "RCA IMS - Automated Report (" + config.getFrequency() + ")";
+        if (config.getFrequency() == ScheduledReportConfig.ReportFrequency.INTERVAL) {
+             subject += " - Every " + (config.getIntervalHours() != null ? config.getIntervalHours() : 24) + "h";
+        }
+        
         String body = createEmailBody(config, start, end);
 
         if (config.getReportType() == ScheduledReportConfig.ScheduledReportType.ALL_REPORTS_ZIP) {
@@ -87,11 +142,19 @@ public class ScheduledReportService {
         cleanupAttachments(attachments);
     }
 
-    private LocalDate calculateStartDate(ScheduledReportConfig.ReportFrequency frequency, LocalDate end) {
-        return switch (frequency) {
+    private LocalDate calculateStartDate(ScheduledReportConfig config, LocalDate end) {
+        if (config.getFrequency() == ScheduledReportConfig.ReportFrequency.INTERVAL) {
+            int hours = config.getIntervalHours() != null ? config.getIntervalHours() : 24;
+            // Approximate days for interval
+            long days = Math.max(1, hours / 24);
+            return end.minusDays(days);
+        }
+
+        return switch (config.getFrequency()) {
             case DAILY -> end.minusDays(1);
             case WEEKLY -> end.minusWeeks(1);
             case MONTHLY -> end.minusMonths(1);
+            case INTERVAL -> end.minusDays(1); // Fallback
         };
     }
 
