@@ -23,6 +23,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
@@ -72,6 +73,10 @@ public class ReportService {
         ReportHistory history = reportHistoryRepository.findById(id)
                 .orElseThrow(() -> new npk.rca.ims.exceptions.ResourceNotFoundException("Report history not found with id: " + id));
         
+        if ("EXPIRED".equals(history.getStatus())) {
+            throw new npk.rca.ims.exceptions.ResourceNotFoundException("Report has expired and is no longer available.");
+        }
+
         if (history.getFilePath() == null) {
              throw new npk.rca.ims.exceptions.ResourceNotFoundException("File path not found for report: " + id);
         }
@@ -82,6 +87,33 @@ public class ReportService {
             log.error("Failed to read report file", e);
             throw new RuntimeException("Failed to read report file", e);
         }
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?") // Run every day at midnight
+    public void cleanupExpiredReports() {
+        log.info("Starting report cleanup task...");
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(5);
+        List<ReportHistory> expiredReports = reportHistoryRepository.findByStatusNotAndGeneratedDateBefore("EXPIRED", cutoffDate);
+        
+        int deletedCount = 0;
+        for (ReportHistory report : expiredReports) {
+            try {
+                if (report.getFilePath() != null) {
+                    Path filePath = Paths.get(report.getFilePath());
+                    if (Files.exists(filePath)) {
+                        Files.delete(filePath);
+                    }
+                }
+                report.setFilePath(null);
+                report.setStatus("EXPIRED");
+                reportHistoryRepository.save(report);
+                deletedCount++;
+            } catch (Exception e) {
+                log.error("Failed to cleanup report id: " + report.getId(), e);
+            }
+        }
+        
+        log.info("Report cleanup completed. Deleted {} reports.", deletedCount);
     }
 
     private String saveFileToDisk(byte[] content, String prefix, String extension) {

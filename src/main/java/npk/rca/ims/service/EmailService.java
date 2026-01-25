@@ -83,7 +83,7 @@ public class EmailService {
                     <div style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.08);">
 
                         <!-- Header -->
-                        <div style="background: linear-gradient(135deg, #1e3a8a 0%%, #2563eb 100%%); padding: 32px 30px;">
+                        <div style="background: linear-gradient(135deg, #e4e6ecff 0%%, #fdfeffff 100%%); padding: 32px 30px;">
                             <table width="100%%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td style="width: 64px; vertical-align: middle;">

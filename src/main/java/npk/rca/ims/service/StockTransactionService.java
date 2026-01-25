@@ -184,6 +184,11 @@ public class StockTransactionService {
             throw new IllegalStateException("Cannot update a reversed transaction");
         }
 
+        // Check if transaction is older than 5 days
+        if (transaction.getCreatedAt().plusDays(5).isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Transaction cannot be edited after 5 days");
+        }
+
         // 1. Capture original state
         Item originalItem = transaction.getItem();
         int originalQuantity = transaction.getQuantity();
