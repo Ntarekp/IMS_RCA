@@ -75,10 +75,12 @@ public class ScheduledReportService {
             return ready;
         }
 
-        // For other frequencies, check time preference (Hour precision)
-        int scheduledHour = config.getScheduledTime() != null ? config.getScheduledTime().getHour() : 8;
-        if (now.getHour() != scheduledHour) {
-            // log.debug("Report (ID: {}) not ready: Current hour {} != Scheduled hour {}", config.getId(), now.getHour(), scheduledHour);
+        // For other frequencies, check time preference (Hour AND Minute precision)
+        java.time.LocalTime scheduledTime = config.getScheduledTime() != null ? config.getScheduledTime() : java.time.LocalTime.of(8, 0);
+        
+        // If current time is BEFORE the scheduled time, wait.
+        if (now.toLocalTime().isBefore(scheduledTime)) {
+            // log.debug("Report (ID: {}) not ready: Current time {} is before Scheduled time {}", config.getId(), now.toLocalTime(), scheduledTime);
             return false;
         }
 
@@ -96,10 +98,12 @@ public class ScheduledReportService {
                 ready = !lastSent.toLocalDate().isEqual(now.toLocalDate());
                 break;
             case WEEKLY:
-                ready = lastSent.plusDays(6).isBefore(now);
+                // Check if at least 1 week has passed (ensure we are on or after the target date)
+                ready = lastSent.plusWeeks(1).toLocalDate().compareTo(now.toLocalDate()) <= 0;
                 break;
             case MONTHLY:
-                ready = lastSent.plusDays(25).isBefore(now);
+                // Check if at least 1 month has passed
+                ready = lastSent.plusMonths(1).toLocalDate().compareTo(now.toLocalDate()) <= 0;
                 break;
             case INTERVAL:
                 ready = true; // Should be handled above
