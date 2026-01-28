@@ -55,7 +55,7 @@ class FileControllerTest {
         );
 
         mockMvc.perform(multipart("/api/files/upload").file(file))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
