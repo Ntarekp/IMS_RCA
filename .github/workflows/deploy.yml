@@ -1,0 +1,39 @@
+name: Deploy RCA IMS Backend
+
+on:
+  push:
+    branches: [ prod ]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, backend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Injecting secrets
+      - name: Export env
+        run: |
+          export DB_URL=${{ secrets.DB_URL }}
+          export DB_USER=${{ secrets.DB_USER }}
+          export DB_PASS=${{ secrets.DB_PASS }}
+          export SMTP_USER=${{ secrets.SMTP_USER }}
+          export SMTP_PASS=${{ secrets.SMTP_PASS }}
+
+      # 2. Build backend
+      - name: Build backend
+        run: ./mvnw clean package -DskipTests
+
+      # 3. Deploying JAR to server folder
+      - name: Deploy JAR
+        run: |
+          mkdir -p /opt/apps/rca-backend
+          cp target/rca-backend-*.jar /opt/apps/rca-backend/rca-backend.jar
+
+      # 4. restarting backend process
+      - name: Restart backend
+        run: |
+          # Stop old process if exists
+          pkill -f 'java -jar /opt/apps/rca-backend/rca-backend.jar' || true
+          # Start new backend in background
+          nohup java -jar /opt/apps/rca-backend/rca-backend.jar > /opt/apps/rca-backend/app.log 2>&1 &
