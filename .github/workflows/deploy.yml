@@ -27,6 +27,11 @@ jobs:
       - name: Build backend JAR
         run: ./mvnw clean package -DskipTests
 
+
+      #  show build artifacts
+      - name: show build  artifacts artifacts
+        run: ls -lh target/
+
       #  Deploying jar to the server folder
       - name: Deploy JAR
         run: |
