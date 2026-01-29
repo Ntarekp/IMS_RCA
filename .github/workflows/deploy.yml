@@ -45,12 +45,16 @@ jobs:
           sleep 2
 
       #  starting backend with .env loaded
-      - name: Start backend
+           #  starting backend with PM2 and .env loaded
+      - name: Start backend with PM2
         run: |
-         cd /opt/apps/rca-backend
-         nohup bash -c '
-         set -o allexport
-         source /opt/configs/rca-backend/.env
-         set +o allexport
-         exec java -jar rca-backend.jar
-         ' > app.log 2>&1 &
+          pm2 stop rca-backend || true
+          pm2 delete rca-backend || true
+          pm2 start bash --name rca-backend -- -c "
+            set -a
+            source /opt/configs/rca-backend/.env
+            set +a
+            java -jar /opt/apps/rca-backend/rca-backend.jar
+          "
+          pm2 save
+
