@@ -9,31 +9,42 @@ jobs:
     runs-on: [self-hosted, backend]
 
     steps:
-      - uses: actions/checkout@v4
+      #  Checkout the repo
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # 1. Injecting secrets
-      - name: Export env
+      #  loading .env to workspace
+      - name: Load environment
         run: |
-          export DB_URL=${{ secrets.DB_URL }}
-          export DB_USER=${{ secrets.DB_USER }}
-          export DB_PASS=${{ secrets.DB_PASS }}
-          export SMTP_USER=${{ secrets.SMTP_USER }}
-          export SMTP_PASS=${{ secrets.SMTP_PASS }}
+          cp /opt/configs/rca-backend/.env .env
+          echo "Environment file copied"
 
-      # 2. Build backend
-      - name: Build backend
+      #  Making Maven wrapper executable
+      - name: Ensure mvnw is executable
+        run: chmod +x ./mvnw
+
+      #  Build backend
+      - name: Build backend JAR
         run: ./mvnw clean package -DskipTests
 
-      # 3. Deploying JAR to server folder
+      #  Deploy jar to server folder
       - name: Deploy JAR
         run: |
           mkdir -p /opt/apps/rca-backend
           cp target/rca-backend-*.jar /opt/apps/rca-backend/rca-backend.jar
 
-      # 4. restarting backend process
-      - name: Restart backend
+      #  Stop old backend processs
+      - name: Stop old backend process
         run: |
-          # Stop old process if exists
           pkill -f 'java -jar /opt/apps/rca-backend/rca-backend.jar' || true
-          # Start new backend in background
-          nohup java -jar /opt/apps/rca-backend/rca-backend.jar > /opt/apps/rca-backend/app.log 2>&1 &
+          sleep 2
+
+      #  starting backend with .env loaded
+      - name: Start backend
+        run: |
+          nohup bash -c '
+            set -o allexport
+            source /opt/configs/rca-backend/.env
+            set +o allexport
+            java -jar /opt/apps/rca-backend/rca-backend.jar
+          ' > /opt/apps/rca-backend/app.log 2>&1 &
