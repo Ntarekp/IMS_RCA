@@ -38,6 +38,11 @@ public class EmailService {
     @Value("${app.admin.default-email:ntarekayitare@gmail.com}")
     private String adminEmail;
 
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        log.info("EmailService initialized with Frontend URL: {}", frontendUrl);
+    }
+
     @Async
     public void sendReportEmailWithAttachment(String to, String subject, String body, Map<String, File> attachments) {
         try {

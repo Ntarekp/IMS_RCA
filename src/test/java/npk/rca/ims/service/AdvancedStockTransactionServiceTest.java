@@ -54,6 +54,7 @@ class AdvancedStockTransactionServiceTest {
         testTransactionIn.setTransactionType(TransactionType.IN);
         testTransactionIn.setQuantity(100);
         testTransactionIn.setTransactionDate(LocalDate.now());
+        testTransactionIn.setCreatedAt(java.time.LocalDateTime.now());
 
         updateDTO = new StockTransactionDTO();
         updateDTO.setId(1L);
