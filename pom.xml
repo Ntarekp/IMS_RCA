@@ -16,7 +16,8 @@
 	<groupId>npk.rca</groupId>
 	<artifactId>ims</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
+	<packaging>jar</packaging>
+
 
 	<name>School Inventory Management System</name>
 	<description>Inventory management system for school stock tracking</description>
