@@ -11,36 +11,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Injecting secrets
-      - name: Export env
+     
+      - name: Load env variables from config
         run: |
-          export DB_URL=${{ secrets.DB_URL }}
-          export DB_USER=${{ secrets.DB_USER }}
-          export DB_PASS=${{ secrets.DB_PASS }}
-          export SMTP_USER=${{ secrets.SMTP_USER }}
-          export SMTP_PASS=${{ secrets.SMTP_PASS }}
+          export $(grep -v '^#' /opt/configs/rca-backend/.env | xargs)
+          echo "DB_URL=$DB_URL"
+          echo "DB_USER=$DB_USER"
+          echo "DB_PASS=$DB_PASS"
+          echo "SMTP_USER=$SMTP_USER"
+          echo "SMTP_PASS=$SMTP_PASS"
 
       
-           # Fix mvnw permissions
       - name: Make mvnw executable
         run: chmod +x mvnw
 
-      # 2. Build backend
+      
       - name: Build backend
         run: ./mvnw clean package -DskipTests
 
-
-      # 3. Deploying JAR to server folder
+    
       - name: Deploy JAR
         run: |
           mkdir -p /opt/apps/rca-backend
           cp target/*.jar /opt/apps/rca-backend/rca-backend.jar
 
-
-      # 4. restarting backend process
-      - name: Restart backend
+      
+      - name: Restart backend with PM2
         run: |
-          # Stop old process if exists
-          pkill -f 'java -jar /opt/apps/rca-backend/rca-backend.jar' || true
-          # Start new backend in background
-          nohup java -jar /opt/apps/rca-backend/rca-backend.jar > /opt/apps/rca-backend/app.log 2>&1 &
+          # Install PM2 if not installed
+          npm install -g pm2 || true
+
+          # Load environment variables for PM2
+          export $(grep -v '^#' /opt/configs/rca-backend/.env | xargs)
+
+          # Start or restart the backend with PM2
+          pm2 start /opt/apps/rca-backend/rca-backend.jar \
+            --name rca-backend \
+            --interpreter java \
+            --interpreter-args "-jar" \
+            --update-env \
+            || pm2 restart rca-backend --update-env
+
+          # Save PM2 process list so it survives server reboot
+          pm2 save
