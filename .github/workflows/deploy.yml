@@ -34,7 +34,8 @@ jobs:
       - name: Deploy JAR
         run: |
           mkdir -p /opt/apps/rca-backend
-          cp target/rca-backend-*.jar /opt/apps/rca-backend/rca-backend.jar
+          cp target/*.jar /opt/apps/rca-backend/rca-backend.jar
+
 
       # 4. restarting backend process
       - name: Restart backend
