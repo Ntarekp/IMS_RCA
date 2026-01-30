@@ -53,6 +53,7 @@ class ReportServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Force update
         testTransaction = new StockTransactionDTO();
         testTransaction.setId(1L);
         testTransaction.setItemId(1L);

@@ -46,6 +46,7 @@ class StockServiceTest {
     @DisplayName("Should return correct metrics for mixed item states including historical damaged data")
     void getMetrics_ShouldReturnCorrectMetrics() {
         // Arrange
+        // Force update to clear potential runner cache
         Item normalItem = createItem(1L, 10, 0); // Min 10, Damaged 0
         Item lowStockItem = createItem(2L, 50, 0); // Min 50, Damaged 0
         Item damagedItem = createItem(3L, 5, 5);   // Min 5, Damaged 5

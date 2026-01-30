@@ -27,10 +27,14 @@ jobs:
       - name: Make mvnw executable
         run: chmod +x mvnw
 
-      
+      - name: Debug StockServiceTest.java
+        run: |
+          echo "Checking StockServiceTest.java content:"
+          head -n 90 src/test/java/npk/rca/ims/service/StockServiceTest.java | tail -n 20
+
       #  Build backend
       - name: Build backend JAR
-        run: ./mvnw clean package -Dmaven.test.skip=true
+        run: ./mvnw clean package -Dmaven.test.skip=true -DskipTests
 
 
       #  show build artifacts
