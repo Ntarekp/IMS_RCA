@@ -20,9 +20,15 @@ jobs:
           export SMTP_USER=${{ secrets.SMTP_USER }}
           export SMTP_PASS=${{ secrets.SMTP_PASS }}
 
+      
+           # Fix mvnw permissions
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
       # 2. Build backend
       - name: Build backend
         run: ./mvnw clean package -DskipTests
+
 
       # 3. Deploying JAR to server folder
       - name: Deploy JAR
