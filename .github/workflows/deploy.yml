@@ -1,0 +1,60 @@
+name: Deploy RCA IMS Backend
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, backend]
+
+    steps:
+      #  Checkout the repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      #  loading .env to workspace
+      - name: Load environment
+        run: |
+          cp /opt/configs/rca-backend/.env .env
+          echo "Environment file copied"
+
+      #  Making Maven wrapper executable
+      - name: Ensure mvnw is executable
+        run: chmod +x ./mvnw
+
+      #  Build backend
+      - name: Build backend JAR
+        run: ./mvnw clean package -DskipTests
+
+
+      #  show build artifacts
+      - name: show build  artifacts artifacts
+        run: ls -lh target/
+
+      #  Deploying jar to the server folder
+      - name: Deploy JAR
+        run: |
+          mkdir -p /opt/apps/rca-backend
+          cp target/ims-*.jar /opt/apps/rca-backend/rca-backend.jar
+
+      #  Stop old backend processs
+      - name: Stop old backend process
+        run: |
+          pkill -f 'java -jar /opt/apps/rca-backend/rca-backend.jar' || true
+          sleep 2
+
+      #  starting backend with .env loaded
+           #  starting backend with PM2 and .env loaded
+      - name: Start backend with PM2
+        run: |
+          pm2 stop rca-backend || true
+          pm2 delete rca-backend || true
+          pm2 start bash --name rca-backend -- -c "
+            set -a
+            source /opt/configs/rca-backend/.env
+            set +a
+            java -jar /opt/apps/rca-backend/rca-backend.jar
+          "
+          pm2 save
+

@@ -32,7 +32,7 @@ public class EmailService {
     @Value("${spring.mail.username:noreply@rca-ims.com}")
     private String fromEmail;
 
-    @Value("${app.frontend.url}")
+    @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
     @Value("${app.admin.default-email:ntarekayitare@gmail.com}")
