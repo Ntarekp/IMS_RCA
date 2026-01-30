@@ -2,7 +2,7 @@ name: Deploy RCA IMS Backend
 
 on:
   push:
-    branches: [ prod ]
+    branches: [ main ]
 
 jobs:
   deploy:
