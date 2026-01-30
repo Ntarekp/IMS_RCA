@@ -82,3 +82,6 @@ application-prod.yml
 .DS_Store
 Thumbs.db
 *~
+
+### Generated Reports ###
+reports_storage/
