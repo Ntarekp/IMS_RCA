@@ -13,16 +13,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      #  loading .env to workspace
-      - name: Load environment
+      # 1. Injecting secrets
+      - name: Export env
         run: |
-          cp /opt/configs/rca-backend/.env .env
-          echo "Environment file copied"
+          export $(grep -v '^#' /opt/configs/rca-backend/.env | xargs)
+          echo "DB_URL=$DB_URL"
+          echo "DB_USER=$DB_USER"
+          echo "DB_PASS=$DB_PASS"
+          echo "SMTP_USER=$SMTP_USER"
+          echo "SMTP_PASS=$SMTP_PASS"
 
-      #  Making Maven wrapper executable
-      - name: Ensure mvnw is executable
-        run: chmod +x ./mvnw
+      
+      - name: Make mvnw executable
+        run: chmod +x mvnw
 
+      
       #  Build backend
       - name: Build backend JAR
         run: ./mvnw clean package -Dmaven.test.skip=true
@@ -57,4 +62,3 @@ jobs:
             java -jar /opt/apps/rca-backend/rca-backend.jar
           "
           pm2 save
-

@@ -4,17 +4,9 @@ import npk.rca.ims.dto.StockBalanceDTO;
 import npk.rca.ims.dto.StockTransactionDTO;
 import npk.rca.ims.dto.SupplierDTO;
 import npk.rca.ims.model.TransactionType;
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 import npk.rca.ims.repository.ItemRepository;
 import npk.rca.ims.repository.ReportHistoryRepository;
 import npk.rca.ims.model.Item;
-=======
-import npk.rca.ims.repository.ReportHistoryRepository;
->>>>>>> Stashed changes
-=======
-import npk.rca.ims.repository.ReportHistoryRepository;
->>>>>>> Stashed changes
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,15 +41,9 @@ class ReportServiceTest {
     @Mock
     private ReportHistoryRepository reportHistoryRepository;
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
     @Mock
     private ItemRepository itemRepository;
 
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     @InjectMocks
     private ReportService reportService;
 
